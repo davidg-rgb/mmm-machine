@@ -10,6 +10,7 @@ import {
   Clock,
   ChevronRight,
   Trash2,
+  GitCompare,
 } from "lucide-react";
 import {
   Button,
@@ -118,6 +119,10 @@ export default function ModelRun() {
     createModelRun.mutate(config);
   }
 
+  const completedRunsCount = runs.filter(
+    (r) => r.status === "completed" && r.results
+  ).length;
+
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex items-center justify-between">
@@ -127,13 +132,23 @@ export default function ModelRun() {
             Configure and run Bayesian Marketing Mix Models
           </p>
         </div>
-        <Button
-          onClick={() => setShowConfig(true)}
-          disabled={!validatedDataset}
-        >
-          <Plus className="h-4 w-4" />
-          New Run
-        </Button>
+        <div className="flex gap-2">
+          {completedRunsCount >= 2 && (
+            <Link to="/compare">
+              <Button variant="outline">
+                <GitCompare className="h-4 w-4" />
+                Compare Models
+              </Button>
+            </Link>
+          )}
+          <Button
+            onClick={() => setShowConfig(true)}
+            disabled={!validatedDataset}
+          >
+            <Plus className="h-4 w-4" />
+            New Run
+          </Button>
+        </div>
       </div>
 
       {/* Active run progress */}

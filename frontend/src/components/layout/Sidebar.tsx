@@ -6,6 +6,7 @@ import {
   Database,
   FlaskConical,
   BarChart3,
+  GitCompare,
   Settings,
   X,
 } from "lucide-react";
@@ -15,6 +16,7 @@ const navItems = [
   { to: "/upload", icon: Upload, label: "Upload Data" },
   { to: "/datasets", icon: Database, label: "Datasets" },
   { to: "/models", icon: FlaskConical, label: "Model Runs" },
+  { to: "/compare", icon: GitCompare, label: "Compare" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ];
 

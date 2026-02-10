@@ -13,6 +13,7 @@ const Upload = lazy(() => import("./pages/Upload"));
 const Datasets = lazy(() => import("./pages/Datasets"));
 const ModelRun = lazy(() => import("./pages/ModelRun"));
 const Results = lazy(() => import("./pages/Results"));
+const Compare = lazy(() => import("./pages/Compare"));
 const Settings = lazy(() => import("./pages/Settings"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -82,6 +83,7 @@ export default function App() {
             <Route path="/datasets" element={<Datasets />} />
             <Route path="/models" element={<ModelRun />} />
             <Route path="/results/:runId" element={<Results />} />
+            <Route path="/compare" element={<Compare />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
           <Route path="*" element={<NotFound />} />
