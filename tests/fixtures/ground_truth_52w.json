@@ -1,0 +1,49 @@
+{
+  "base_revenue": 50000,
+  "base_sales_pct": 0.7202418217667943,
+  "channels": {
+    "tv_spend": {
+      "beta": 0.25,
+      "alpha": 0.7,
+      "lam": 0.5,
+      "total_contribution": 325006.71476502455,
+      "contribution_share": 0.3677750615400784,
+      "roas": 0.25235050014035554,
+      "total_spend": 1287917.8546674491
+    },
+    "meta_spend": {
+      "beta": 0.15,
+      "alpha": 0.3,
+      "lam": 0.8,
+      "total_contribution": 194896.8798618446,
+      "contribution_share": 0.22054378795521667,
+      "roas": 0.17130330885658854,
+      "total_spend": 1137729.8031353736
+    },
+    "search_spend": {
+      "beta": 0.2,
+      "alpha": 0.1,
+      "lam": 0.4,
+      "total_contribution": 259816.08352882968,
+      "contribution_share": 0.2940058520883227,
+      "roas": 0.20859544035804345,
+      "total_spend": 1245550.157198396
+    },
+    "radio_spend": {
+      "beta": 0.08,
+      "alpha": 0.5,
+      "lam": 0.6,
+      "total_contribution": 103990.90679816125,
+      "contribution_share": 0.1176752984163823,
+      "roas": 0.08019132241812217,
+      "total_spend": 1296785.0343700117
+    }
+  },
+  "controls": {
+    "temperature_coeff": 100,
+    "holiday_boost": 5000
+  },
+  "n_weeks": 52,
+  "total_revenue": 3609898.677671968,
+  "total_media_contribution": 883710.58495386
+}

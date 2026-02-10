@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from typing import Any
 
 import pandas as pd
@@ -74,6 +74,14 @@ class DecompositionTS:
 
 
 @dataclass
+class ResponseCurvePoint:
+    spend_levels: list[float]
+    predicted_contribution: list[float]
+    current_spend: float
+    current_contribution: float
+
+
+@dataclass
 class EngineResults:
     diagnostics: Diagnostics
     base_sales_pct: float
@@ -85,3 +93,11 @@ class EngineResults:
     decomposition_ts: DecompositionTS
     summary_text: str = ""
     top_recommendation: str = ""
+    response_curves: dict[str, ResponseCurvePoint] = field(default_factory=dict)
+
+    def to_dict(self) -> dict:
+        """Serialize to a JSON-compatible dict. Handles nested dataclasses."""
+        d = asdict(self)
+        # asdict already recursively converts dataclasses to dicts.
+        # Remove any non-serializable fields.
+        return d
