@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, lazy, Suspense } from "react";
 import { useParams, Link } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import {
@@ -8,13 +8,15 @@ import {
   ArrowLeft,
   Download,
 } from "lucide-react";
-import { Button, Badge, Skeleton } from "@/components/shared";
+import { Button, Badge, Skeleton, Spinner } from "@/components/shared";
 import { cn } from "@/lib/utils";
 import ExecutiveView from "@/components/results/ExecutiveView";
-import ManagerView from "@/components/results/ManagerView";
-import AnalystView from "@/components/results/AnalystView";
 import { useModelRun, useModelResults } from "@/hooks/api-hooks";
 import toast from "react-hot-toast";
+
+// Lazy-load views that use heavy chart libraries (Plotly = 4.75MB)
+const ManagerView = lazy(() => import("@/components/results/ManagerView"));
+const AnalystView = lazy(() => import("@/components/results/AnalystView"));
 
 type ViewMode = "executive" | "manager" | "analyst";
 
@@ -148,8 +150,30 @@ export default function Results() {
 
       {/* View Content */}
       {view === "executive" && <ExecutiveView results={results} />}
-      {view === "manager" && <ManagerView results={results} runId={runId!} />}
-      {view === "analyst" && <AnalystView results={results} />}
+      {view === "manager" && (
+        <Suspense
+          fallback={
+            <div className="flex items-center justify-center py-20">
+              <Spinner size="lg" />
+              <span className="ml-3 text-gray-500">Loading charts...</span>
+            </div>
+          }
+        >
+          <ManagerView results={results} runId={runId!} />
+        </Suspense>
+      )}
+      {view === "analyst" && (
+        <Suspense
+          fallback={
+            <div className="flex items-center justify-center py-20">
+              <Spinner size="lg" />
+              <span className="ml-3 text-gray-500">Loading charts...</span>
+            </div>
+          }
+        >
+          <AnalystView results={results} />
+        </Suspense>
+      )}
     </div>
   );
 }
