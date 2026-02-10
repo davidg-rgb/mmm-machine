@@ -169,9 +169,11 @@ def run_mmm_model(self, model_run_id: str):
                     model_run.completed_at = datetime.now(timezone.utc)
                     db.commit()
             _publish_progress(model_run_id, 0, "Model fitting exceeded time limit", "error")
-            raise
+            return  # Don't re-raise, just return
 
     except Exception as exc:
+        if isinstance(exc, SoftTimeLimitExceeded):
+            return  # Already handled above
         logger.exception(f"Model run {model_run_id} failed: {exc}")
         try:
             with Session(engine) as db:

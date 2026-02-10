@@ -9,7 +9,7 @@ describe("useModelStore", () => {
         adstock_type: "geometric",
         saturation_type: "logistic",
         mode: "quick",
-        yearly_seasonality: true,
+        yearly_seasonality: 2,
       },
       activeRunId: null,
     });
@@ -21,7 +21,7 @@ describe("useModelStore", () => {
       adstock_type: "geometric",
       saturation_type: "logistic",
       mode: "quick",
-      yearly_seasonality: true,
+      yearly_seasonality: 2,
     });
     expect(state.activeRunId).toBeNull();
   });
@@ -39,13 +39,13 @@ describe("useModelStore", () => {
     useModelStore.getState().setConfig({
       saturation_type: "hill",
       mode: "full",
-      yearly_seasonality: false,
+      yearly_seasonality: 0,
     });
 
     const state = useModelStore.getState();
     expect(state.config.saturation_type).toBe("hill");
     expect(state.config.mode).toBe("full");
-    expect(state.config.yearly_seasonality).toBe(false);
+    expect(state.config.yearly_seasonality).toBe(0);
     expect(state.config.adstock_type).toBe("geometric"); // unchanged
   });
 
@@ -70,7 +70,7 @@ describe("useModelStore", () => {
       adstock_type: "weibull",
       saturation_type: "hill",
       mode: "full",
-      yearly_seasonality: false,
+      yearly_seasonality: 0,
     });
     useModelStore.getState().setActiveRun("run-456");
 
@@ -82,7 +82,7 @@ describe("useModelStore", () => {
       adstock_type: "geometric",
       saturation_type: "logistic",
       mode: "quick",
-      yearly_seasonality: true,
+      yearly_seasonality: 2,
     });
     expect(state.activeRunId).toBeNull();
   });
@@ -90,11 +90,11 @@ describe("useModelStore", () => {
   it("handles multiple config updates", () => {
     useModelStore.getState().setConfig({ mode: "full" });
     useModelStore.getState().setConfig({ adstock_type: "weibull" });
-    useModelStore.getState().setConfig({ yearly_seasonality: false });
+    useModelStore.getState().setConfig({ yearly_seasonality: 0 });
 
     const state = useModelStore.getState();
     expect(state.config.mode).toBe("full");
     expect(state.config.adstock_type).toBe("weibull");
-    expect(state.config.yearly_seasonality).toBe(false);
+    expect(state.config.yearly_seasonality).toBe(0);
   });
 });
