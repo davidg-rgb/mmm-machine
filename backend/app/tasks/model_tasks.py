@@ -6,7 +6,6 @@ and the data scientist's engine (PyMCMMMEngine).
 
 import json
 import logging
-from dataclasses import asdict
 from datetime import datetime, timezone
 
 import redis
@@ -18,7 +17,7 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
-def _publish_progress(run_id: str, progress: int, message: str, stage: str):
+def _publish_progress(run_id: str, progress: int, message: str, stage: str, eta_seconds: int | None = None):
     """Publish progress event via Redis pub/sub for SSE streaming."""
     r = redis.from_url(settings.redis_url)
     event = {
@@ -27,6 +26,8 @@ def _publish_progress(run_id: str, progress: int, message: str, stage: str):
         "message": message,
         "stage": stage,
     }
+    if eta_seconds is not None:
+        event["eta_seconds"] = eta_seconds
     r.publish(f"model_progress:{run_id}", json.dumps(event))
     r.close()
 
@@ -117,10 +118,11 @@ def run_mmm_model(self, model_run_id: str):
             model_run.progress = 90
             model_run.status = "postprocessing"
             db.commit()
-            _publish_progress(model_run_id, 90, "Extracting results...", "postprocessing")
+            _publish_progress(model_run_id, 90, "Extracting results and generating insights...", "postprocessing")
 
             results = mmm.extract_results()
-            results_dict = asdict(results)
+            from app.services.results_transformer import transform_results
+            results_dict = transform_results(results)
 
             # Upload model artifact to S3
             model_run.progress = 95
