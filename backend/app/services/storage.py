@@ -45,13 +45,27 @@ class StorageService:
         return response["Body"].read()
 
     def download_csv(self, key: str):
+        """Download a CSV file from S3 and return as a pandas DataFrame."""
         import pandas as pd
 
         data = self.download_file(key)
         return pd.read_csv(io.BytesIO(data))
 
     def delete_file(self, key: str):
-        self.client.delete_object(Bucket=self.bucket, Key=key)
+        try:
+            self.client.delete_object(Bucket=self.bucket, Key=key)
+        except ClientError:
+            logger.warning(f"Failed to delete S3 object: {key}")
+
+    def delete_prefix(self, prefix: str):
+        """Delete all objects under a given prefix."""
+        try:
+            paginator = self.client.get_paginator("list_objects_v2")
+            for page in paginator.paginate(Bucket=self.bucket, Prefix=prefix):
+                for obj in page.get("Contents", []):
+                    self.client.delete_object(Bucket=self.bucket, Key=obj["Key"])
+        except ClientError:
+            logger.warning(f"Failed to delete S3 prefix: {prefix}")
 
     def generate_presigned_url(self, key: str, expires_in: int = 3600) -> str:
         return self.client.generate_presigned_url(

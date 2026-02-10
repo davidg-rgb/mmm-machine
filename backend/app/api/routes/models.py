@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,6 +10,8 @@ from app.models.user import User
 from app.models.model_run import ModelRun
 from app.models.dataset import Dataset
 from app.schemas.model_run import ModelRunConfig, ModelRunResponse
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/models", tags=["models"])
 
@@ -42,15 +46,17 @@ async def create_model_run(
         workspace_id=current_user.workspace_id,
         dataset_id=body.dataset_id,
         created_by=current_user.id,
-        name=body.name or f"Model Run",
+        name=body.name or "Model Run",
         config=config,
     )
     db.add(model_run)
     await db.flush()
 
-    # TODO: Dispatch Celery task
-    # from app.tasks.model_tasks import run_mmm_model
-    # run_mmm_model.delay(model_run.id)
+    # Dispatch Celery task
+    from app.tasks.model_tasks import run_mmm_model
+
+    run_mmm_model.delay(model_run.id)
+    logger.info(f"Dispatched model run {model_run.id} to Celery")
 
     return _to_response(model_run)
 
@@ -109,6 +115,16 @@ async def delete_model_run(
     db: AsyncSession = Depends(get_db),
 ):
     model_run = await _get_run(run_id, current_user.workspace_id, db)
+
+    # Delete model artifact from S3 if exists
+    if model_run.model_artifact_s3_key:
+        try:
+            from app.services.storage import StorageService
+            storage = StorageService()
+            storage.delete_file(model_run.model_artifact_s3_key)
+        except Exception:
+            logger.warning(f"Failed to delete S3 artifact for model run {run_id}")
+
     await db.delete(model_run)
 
 

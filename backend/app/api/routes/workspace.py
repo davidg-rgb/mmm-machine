@@ -54,3 +54,34 @@ async def update_workspace(
         name=workspace.name,
         created_at=workspace.created_at.isoformat(),
     )
+
+
+@router.get("/members")
+async def list_members(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(User).where(User.workspace_id == current_user.workspace_id)
+    )
+    users = result.scalars().all()
+    return [
+        {
+            "id": u.id,
+            "email": u.email,
+            "full_name": u.full_name,
+            "role": u.role,
+        }
+        for u in users
+    ]
+
+
+@router.post("/invite", status_code=202)
+async def invite_member(
+    current_user: User = Depends(get_current_user),
+):
+    """Stub for workspace member invitation (Phase 2)."""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    return {"detail": "Invitation feature coming soon"}
