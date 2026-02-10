@@ -1,16 +1,26 @@
-.PHONY: help dev dev-down dev-logs db-migrate db-upgrade db-downgrade test test-backend test-frontend lint format
+.PHONY: help dev dev-full dev-down dev-logs db-migrate db-upgrade db-downgrade test test-backend test-frontend lint format flower
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 # Development
-dev: ## Start all services with Docker Compose
+dev: ## Start backend services with Docker Compose
 	docker compose up -d
 	@echo "Services starting..."
-	@echo "  API:    http://localhost:8000"
-	@echo "  Docs:   http://localhost:8000/docs"
-	@echo "  MinIO:  http://localhost:9001"
+	@echo "  API:      http://localhost:8000"
+	@echo "  Docs:     http://localhost:8000/docs"
+	@echo "  MinIO:    http://localhost:9001"
+	@echo "  Flower:   http://localhost:5555"
 	@echo "  Frontend: http://localhost:5173 (run 'make frontend' separately)"
+
+dev-full: ## Start all services including frontend
+	docker compose up -d
+	@echo "Services starting..."
+	@echo "  Frontend:  http://localhost:3000"
+	@echo "  API:       http://localhost:8000"
+	@echo "  Docs:      http://localhost:8000/docs"
+	@echo "  MinIO:     http://localhost:9001"
+	@echo "  Flower:    http://localhost:5555"
 
 dev-down: ## Stop all services
 	docker compose down
@@ -55,3 +65,7 @@ lint: ## Lint all code
 format: ## Format all code
 	cd backend && ruff format .
 	cd frontend && npm run format
+
+# Monitoring
+flower: ## Open Celery Flower dashboard
+	@echo "Flower: http://localhost:5555"

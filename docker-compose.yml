@@ -16,16 +16,20 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+    volumes:
+      - redis-data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
   minio:
     image: minio/minio:latest
@@ -39,10 +43,11 @@ services:
     volumes:
       - minio-data:/data
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
   api:
     build:
@@ -60,7 +65,7 @@ services:
       - S3_SECRET_KEY=minioadmin
       - S3_BUCKET_NAME=mixmodel-uploads
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:-change-me-in-production}
-      - CORS_ORIGINS=http://localhost:5173
+      - CORS_ORIGINS=http://localhost:5173,http://localhost:3000
       - APP_ENV=development
     ports:
       - "8000:8000"
@@ -73,6 +78,7 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+    restart: unless-stopped
 
   celery-worker:
     build:
@@ -97,7 +103,34 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    restart: unless-stopped
+
+  flower:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A app.tasks.celery_app flower --port=5555
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/2
+    ports:
+      - "5555:5555"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    restart: unless-stopped
 
 volumes:
   postgres-data:
   minio-data:
+  redis-data:
