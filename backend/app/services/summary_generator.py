@@ -24,7 +24,6 @@ def generate_summary(results: EngineResults) -> tuple[str, str]:
     # Build lookup dicts
     roas_by_ch = {r.channel: r for r in roas_list}
     sat_by_ch = {s.channel: s for s in saturation_list}
-    adstock_by_ch = {a.channel: a for a in adstock_list}
 
     # Sort by contribution share descending
     ranked = sorted(contributions, key=lambda c: c.share_of_total, reverse=True)

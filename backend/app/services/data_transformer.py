@@ -1,8 +1,6 @@
 """Data transformation service for preparing uploaded data for the MMM engine."""
 
 import pandas as pd
-import numpy as np
-
 
 # Keywords for auto-detection heuristics
 _DATE_KEYWORDS = ["date", "week", "month", "day", "period", "time", "dt"]

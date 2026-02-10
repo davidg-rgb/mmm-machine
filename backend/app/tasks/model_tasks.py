@@ -11,8 +11,8 @@ from datetime import datetime, timezone
 
 import redis
 
-from app.tasks.celery_app import celery_app
 from app.core.config import get_settings
+from app.tasks.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -37,8 +37,8 @@ def run_mmm_model(self, model_run_id: str):
     from sqlalchemy import create_engine
     from sqlalchemy.orm import Session
 
-    from app.models.model_run import ModelRun
     from app.models.dataset import Dataset
+    from app.models.model_run import ModelRun
     from app.services.storage import StorageService
 
     engine = create_engine(settings.database_url_sync)

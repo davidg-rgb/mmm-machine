@@ -4,11 +4,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_db
 from app.api.dependencies import get_current_user
-from app.models.user import User
-from app.models.model_run import ModelRun
+from app.core.database import get_db
 from app.models.dataset import Dataset
+from app.models.model_run import ModelRun
+from app.models.user import User
 from app.schemas.model_run import ModelRunConfig, ModelRunResponse
 
 logger = logging.getLogger(__name__)

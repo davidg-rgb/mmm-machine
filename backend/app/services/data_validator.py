@@ -4,7 +4,6 @@ Runs comprehensive checks and returns structured ValidationReport.
 """
 
 import pandas as pd
-import numpy as np
 
 
 class DataValidator:

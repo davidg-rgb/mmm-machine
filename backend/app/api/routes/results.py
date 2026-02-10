@@ -7,10 +7,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette.sse import EventSourceResponse
 
-from app.core.database import get_db
 from app.api.dependencies import get_current_user
-from app.models.user import User
+from app.core.database import get_db
 from app.models.model_run import ModelRun
+from app.models.user import User
 from app.services.progress import ProgressService
 
 logger = logging.getLogger(__name__)

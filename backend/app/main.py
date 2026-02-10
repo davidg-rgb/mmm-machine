@@ -5,9 +5,12 @@ from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
+from app.api.routes import auth, models, results, upload, workspace
 from app.core.config import get_settings
-from app.api.routes import auth, upload, models, results, workspace
 
 settings = get_settings()
 
@@ -19,11 +22,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger("mixmodel")
 
+limiter = Limiter(key_func=get_remote_address, enabled=settings.app_env != "test")
+
 app = FastAPI(
     title="MixModel API",
     description="Bayesian Marketing Mix Modeling SaaS Platform",
     version="0.1.0",
 )
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -75,6 +83,19 @@ async def log_requests(request: Request, call_next):
     logger.info(
         f"{request.method} {request.url.path} -> {response.status_code} ({duration_ms:.0f}ms)"
     )
+    return response
+
+
+# --- Security Headers Middleware ---
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    if settings.app_env == "production":
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return response
 
 

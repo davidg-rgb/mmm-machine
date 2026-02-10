@@ -38,6 +38,9 @@ arviz==0.20.0
 # SSE
 sse-starlette==2.2.1
 
+# Security
+slowapi==0.1.9
+
 # Dev/Test
 pytest==8.3.4
 pytest-asyncio==0.24.0

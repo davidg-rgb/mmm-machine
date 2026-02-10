@@ -1,27 +1,28 @@
 import io
 import logging
+import re
 import uuid
 
 import pandas as pd
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_db
 from app.api.dependencies import get_current_user
-from app.models.user import User
+from app.core.database import get_db
 from app.models.dataset import Dataset
+from app.models.user import User
 from app.schemas.dataset import (
     ColumnInfo,
     ColumnMapping,
     DatasetResponse,
-    UploadResponse,
     UpdateMappingRequest,
+    UploadResponse,
     ValidationReport,
 )
-from app.services.storage import StorageService
 from app.services.data_transformer import DataTransformer
 from app.services.data_validator import DataValidator
+from app.services.storage import StorageService
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,15 @@ def _get_file_extension(filename: str) -> str:
     if dot_idx == -1:
         return ""
     return filename[dot_idx:].lower()
+
+
+def _sanitize_filename(filename: str) -> str:
+    """Remove path separators and control characters from filename."""
+    sanitized = re.sub(r'[/\\<>:"|?*\x00-\x1f]', '_', filename)
+    if len(sanitized) > 255:
+        ext = _get_file_extension(sanitized)
+        sanitized = sanitized[:255 - len(ext)] + ext
+    return sanitized
 
 
 def _parse_file(contents: bytes, filename: str) -> pd.DataFrame:
@@ -98,8 +108,9 @@ async def upload_dataset(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    # Validate file extension
-    ext = _get_file_extension(file.filename or "")
+    # Sanitize and validate filename
+    safe_filename = _sanitize_filename(file.filename or "upload")
+    ext = _get_file_extension(safe_filename)
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -124,7 +135,7 @@ async def upload_dataset(
 
     # Parse the file
     try:
-        df = _parse_file(contents, file.filename or "upload.csv")
+        df = _parse_file(contents, safe_filename)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception:
@@ -142,7 +153,7 @@ async def upload_dataset(
 
     # Upload raw file to S3
     dataset_id = str(uuid.uuid4())
-    s3_key = f"datasets/{current_user.workspace_id}/{dataset_id}/{file.filename}"
+    s3_key = f"datasets/{current_user.workspace_id}/{dataset_id}/{safe_filename}"
     content_type = "text/csv" if ext == ".csv" else "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
     try:
@@ -209,7 +220,7 @@ async def upload_dataset(
         id=dataset_id,
         workspace_id=current_user.workspace_id,
         uploaded_by=current_user.id,
-        filename=file.filename or "upload",
+        filename=safe_filename,
         s3_key=csv_key,
         row_count=len(df),
         date_range_start=date_start,

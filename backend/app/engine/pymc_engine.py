@@ -130,7 +130,6 @@ class PyMCMMMEngine(BaseMMM):
             progress_callback(85, "Sampling complete, extracting results...")
 
     def extract_results(self) -> EngineResults:
-        import arviz as az
 
         data = self._prepared_data
         df = data.df
