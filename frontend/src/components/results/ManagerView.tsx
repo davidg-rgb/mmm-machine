@@ -176,7 +176,7 @@ export default function ManagerView({ results, runId }: ManagerViewProps) {
         </Card>
 
         {/* Response Curves (Saturation) */}
-        <Card className="lg:col-span-2">
+        <Card>
           <CardHeader>
             <CardTitle>Response Curves</CardTitle>
             <CardDescription>

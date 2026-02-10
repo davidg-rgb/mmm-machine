@@ -171,7 +171,7 @@ export default function Dashboard() {
 
   // Derive quick stats from latest completed run
   const totalSpend = latestCompleted?.results?.channel_results.reduce(
-    (sum, ch) => sum + ch.weekly_contribution_mean * 104 / ch.roas.mean,
+    (sum, ch) => sum + (ch.roas.mean !== 0 ? ch.weekly_contribution_mean * 104 / ch.roas.mean : 0),
     0,
   );
   const avgRevenue = latestCompleted?.results

@@ -30,4 +30,4 @@ class Dataset(Base):
     )
 
     workspace = relationship("Workspace", back_populates="datasets")
-    model_runs = relationship("ModelRun", back_populates="dataset")
+    model_runs = relationship("ModelRun", back_populates="dataset", cascade="all, delete-orphan")

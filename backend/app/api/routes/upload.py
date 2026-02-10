@@ -423,12 +423,13 @@ async def delete_dataset(
 ):
     dataset = await _get_dataset(dataset_id, current_user.workspace_id, db)
 
-    # Delete S3 files
+    # Delete all S3 files under the dataset prefix (raw upload + converted CSV)
     try:
         storage = StorageService()
-        storage.delete_file(dataset.s3_key)
+        prefix = f"datasets/{dataset.workspace_id}/{dataset_id}/"
+        storage.delete_prefix(prefix)
     except Exception:
-        logger.warning(f"Failed to delete S3 file for dataset {dataset_id}")
+        logger.warning(f"Failed to delete S3 files for dataset {dataset_id}")
 
     await db.delete(dataset)
 

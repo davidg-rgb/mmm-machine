@@ -76,18 +76,22 @@ async def global_exception_handler(request: Request, exc: Exception):
     )
 
 
-# --- Request Correlation ID Middleware ---
+# --- Middleware (Starlette processes in reverse registration order) ---
+# Register innermost first, outermost last:
+#   1. Security headers (innermost - runs last on request)
+#   2. Request logging (middle - needs request_id set)
+#   3. Request ID (outermost - runs first on request, sets request_id)
 
 @app.middleware("http")
-async def add_request_id(request: Request, call_next):
-    request_id = request.headers.get("X-Request-ID", str(uuid_lib.uuid4()))
-    request.state.request_id = request_id
+async def add_security_headers(request: Request, call_next):
     response = await call_next(request)
-    response.headers["X-Request-ID"] = request_id
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    if settings.app_env == "production":
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return response
 
-
-# --- Request Logging Middleware ---
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -101,16 +105,12 @@ async def log_requests(request: Request, call_next):
     return response
 
 
-# --- Security Headers Middleware ---
-
 @app.middleware("http")
-async def add_security_headers(request: Request, call_next):
+async def add_request_id(request: Request, call_next):
+    request_id = request.headers.get("X-Request-ID", str(uuid_lib.uuid4()))
+    request.state.request_id = request_id
     response = await call_next(request)
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["X-XSS-Protection"] = "1; mode=block"
-    if settings.app_env == "production":
-        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["X-Request-ID"] = request_id
     return response
 
 

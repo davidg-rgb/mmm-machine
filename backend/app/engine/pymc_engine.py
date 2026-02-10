@@ -195,7 +195,7 @@ class PyMCMMMEngine(BaseMMM):
         actual_ts = np.array(decomposition_ts.actual)
         nonzero_mask = actual_ts != 0
         if nonzero_mask.any():
-            mape = float(np.mean(np.abs((actual_ts[nonzero_mask] - predicted[nonzero_mask]) / actual_ts[nonzero_mask])) * 100)
+            mape = float(np.mean(np.abs((actual_ts[nonzero_mask] - predicted[nonzero_mask]) / actual_ts[nonzero_mask])))
         else:
             mape = 0.0
         diagnostics.mape = mape

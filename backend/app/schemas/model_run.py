@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class ModelRunConfig(BaseModel):
@@ -9,7 +9,7 @@ class ModelRunConfig(BaseModel):
     n_samples: int = 2000
     n_chains: int = 4
     target_accept: float = 0.9
-    yearly_seasonality: bool = True
+    yearly_seasonality: int = 2
     mode: str = "quick"
 
 
@@ -31,7 +31,7 @@ class ModelRunResponse(BaseModel):
 
 
 class OptimizeBudgetRequest(BaseModel):
-    total_budget: float
+    total_budget: float = Field(gt=0, le=1e12)
     min_per_channel: dict[str, float] | None = None
     max_per_channel: dict[str, float] | None = None
 

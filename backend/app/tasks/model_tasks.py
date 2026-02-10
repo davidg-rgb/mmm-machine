@@ -17,9 +17,20 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
+_redis_client: redis.Redis | None = None
+
+
+def _get_redis() -> redis.Redis:
+    """Return a module-level Redis client, creating it if needed."""
+    global _redis_client
+    if _redis_client is None:
+        _redis_client = redis.from_url(settings.redis_url)
+    return _redis_client
+
+
 def _publish_progress(run_id: str, progress: int, message: str, stage: str, eta_seconds: int | None = None):
     """Publish progress event via Redis pub/sub for SSE streaming."""
-    r = redis.from_url(settings.redis_url)
+    r = _get_redis()
     event = {
         "status": stage,
         "progress": progress,
@@ -29,7 +40,6 @@ def _publish_progress(run_id: str, progress: int, message: str, stage: str, eta_
     if eta_seconds is not None:
         event["eta_seconds"] = eta_seconds
     r.publish(f"model_progress:{run_id}", json.dumps(event))
-    r.close()
 
 
 @celery_app.task(bind=True, max_retries=1, time_limit=3600)
