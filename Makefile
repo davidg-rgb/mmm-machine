@@ -73,3 +73,23 @@ seed: ## Seed demo data (demo@mixmodel.app / demo123)
 # Monitoring
 flower: ## Open Celery Flower dashboard
 	@echo "Flower: http://localhost:5555"
+
+# E2E Testing
+test-e2e: ## Run Playwright E2E tests
+	cd frontend && npx playwright test
+
+test-e2e-ui: ## Run Playwright E2E tests with UI
+	cd frontend && npx playwright test --ui
+
+# Docker
+docker-build: ## Build all Docker images
+	docker compose build
+
+docker-up: ## Start all services
+	docker compose up -d
+
+docker-down: ## Stop all services
+	docker compose down
+
+docker-logs: ## Tail logs from all services
+	docker compose logs -f
