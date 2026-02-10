@@ -41,3 +41,23 @@ class TestUpdateWorkspace:
         )
         assert resp.status_code == 200
         assert resp.json()["name"] == "Updated Workspace"
+
+
+class TestWorkspaceMembers:
+    """GET /api/workspace/members"""
+
+    async def test_list_members_authenticated(
+        self, client: AsyncClient, registered_user, auth_headers
+    ):
+        response = await client.get("/api/workspace/members", headers=auth_headers)
+        assert response.status_code == 200
+        members = response.json()
+        assert isinstance(members, list)
+        assert len(members) >= 1  # At least the registered user
+        assert "email" in members[0]
+        assert "full_name" in members[0]
+        assert "role" in members[0]
+
+    async def test_list_members_unauthenticated(self, client: AsyncClient):
+        response = await client.get("/api/workspace/members")
+        assert response.status_code in (401, 403)

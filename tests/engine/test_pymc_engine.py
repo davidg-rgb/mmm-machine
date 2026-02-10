@@ -9,6 +9,14 @@ Marked as slow — skip with: pytest -m "not slow"
 
 import pytest
 
+try:
+    import pymc_marketing
+    HAS_PYMC = True
+except ImportError:
+    HAS_PYMC = False
+
+pytestmark = pytest.mark.skipif(not HAS_PYMC, reason="pymc_marketing not installed")
+
 from tests.fixtures.synthetic_data import generate_synthetic_dataset
 
 
