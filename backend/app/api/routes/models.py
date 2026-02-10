@@ -90,9 +90,19 @@ async def get_results(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    from app.services.cache import get_cached, set_cached
+
+    cache_key = f"results:{run_id}"
+    cached = get_cached(cache_key)
+    if cached is not None:
+        return cached
+
     model_run = await _get_run(run_id, current_user.workspace_id, db)
     if model_run.status != "completed" or not model_run.results:
         raise HTTPException(status_code=400, detail="Model run not completed yet")
+
+    # Cache for 1 hour
+    set_cached(cache_key, model_run.results, ttl_seconds=3600)
     return model_run.results
 
 
@@ -115,6 +125,10 @@ async def delete_model_run(
     db: AsyncSession = Depends(get_db),
 ):
     model_run = await _get_run(run_id, current_user.workspace_id, db)
+
+    # Invalidate cached results
+    from app.services.cache import invalidate
+    invalidate(f"results:{run_id}")
 
     # Delete model artifact from S3 if exists
     if model_run.model_artifact_s3_key:

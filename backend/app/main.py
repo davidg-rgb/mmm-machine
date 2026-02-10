@@ -1,6 +1,8 @@
 import logging
 import time
+import uuid as uuid_lib
 
+import sqlalchemy as sa
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -66,11 +68,23 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """Catch unhandled exceptions and return a generic 500 response."""
-    logger.exception(f"Unhandled exception on {request.method} {request.url.path}")
+    request_id = getattr(request.state, 'request_id', '-')
+    logger.exception(f"[{request_id}] Unhandled exception on {request.method} {request.url.path}")
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"detail": "Internal server error"},
+        content={"detail": "Internal server error", "request_id": request_id},
     )
+
+
+# --- Request Correlation ID Middleware ---
+
+@app.middleware("http")
+async def add_request_id(request: Request, call_next):
+    request_id = request.headers.get("X-Request-ID", str(uuid_lib.uuid4()))
+    request.state.request_id = request_id
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    return response
 
 
 # --- Request Logging Middleware ---
@@ -80,8 +94,9 @@ async def log_requests(request: Request, call_next):
     start = time.time()
     response = await call_next(request)
     duration_ms = (time.time() - start) * 1000
+    request_id = getattr(request.state, 'request_id', '-')
     logger.info(
-        f"{request.method} {request.url.path} -> {response.status_code} ({duration_ms:.0f}ms)"
+        f"[{request_id}] {request.method} {request.url.path} -> {response.status_code} ({duration_ms:.0f}ms)"
     )
     return response
 
@@ -123,4 +138,42 @@ async def startup_ensure_storage():
 
 @app.get("/health")
 async def health():
-    return {"status": "healthy", "version": "0.1.0"}
+    checks = {}
+
+    # Check PostgreSQL
+    try:
+        from app.core.database import engine
+        async with engine.connect() as conn:
+            await conn.execute(sa.text("SELECT 1"))
+        checks["database"] = "healthy"
+    except Exception as e:
+        checks["database"] = f"unhealthy: {e}"
+
+    # Check Redis
+    try:
+        import redis as redis_lib
+        r = redis_lib.from_url(settings.redis_url, decode_responses=True)
+        r.ping()
+        checks["redis"] = "healthy"
+    except Exception as e:
+        checks["redis"] = f"unhealthy: {e}"
+
+    # Check S3/MinIO
+    try:
+        import boto3
+        s3 = boto3.client(
+            "s3",
+            endpoint_url=settings.s3_endpoint_url,
+            aws_access_key_id=settings.s3_access_key,
+            aws_secret_access_key=settings.s3_secret_key,
+            region_name=settings.s3_region,
+        )
+        s3.list_buckets()
+        checks["storage"] = "healthy"
+    except Exception as e:
+        checks["storage"] = f"unhealthy: {e}"
+
+    all_healthy = all(v == "healthy" for v in checks.values())
+    overall = "healthy" if all_healthy else "degraded"
+
+    return {"status": overall, "version": "0.1.0", "checks": checks}
