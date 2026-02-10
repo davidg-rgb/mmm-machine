@@ -15,6 +15,7 @@ import type {
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "/api",
   headers: { "Content-Type": "application/json" },
+  timeout: 30000, // 30 seconds default timeout
 });
 
 // Attach auth token to every request
@@ -45,6 +46,19 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+
+    // Handle timeout errors with better messaging
+    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+      return Promise.reject(new Error('Request timed out. Please check your connection and try again.'));
+    }
+
+    // Handle network errors with retry logic
+    if (!error.response && error.message === 'Network Error' && !originalRequest._retried) {
+      originalRequest._retried = true;
+      await new Promise(r => setTimeout(r, 1000)); // Wait 1 second before retry
+      return api(originalRequest);
+    }
+
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&
@@ -140,6 +154,7 @@ export async function uploadDataset(file: File): Promise<UploadResponse> {
   form.append("file", file);
   const { data } = await api.post("/datasets/upload", form, {
     headers: { "Content-Type": "multipart/form-data" },
+    timeout: 120000, // 120 seconds for file uploads
   });
   return data;
 }
