@@ -5,12 +5,14 @@ import {
   Upload,
   FlaskConical,
   BarChart3,
+  Settings,
 } from "lucide-react";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/upload", icon: Upload, label: "Upload Data" },
   { to: "/models", icon: FlaskConical, label: "Model Runs" },
+  { to: "/settings", icon: Settings, label: "Settings" },
 ];
 
 export default function Sidebar() {

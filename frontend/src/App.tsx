@@ -12,6 +12,7 @@ const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Upload = lazy(() => import("./pages/Upload"));
 const ModelRun = lazy(() => import("./pages/ModelRun"));
 const Results = lazy(() => import("./pages/Results"));
+const Settings = lazy(() => import("./pages/Settings"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -79,6 +80,7 @@ export default function App() {
             <Route path="/upload" element={<Upload />} />
             <Route path="/models" element={<ModelRun />} />
             <Route path="/results/:runId" element={<Results />} />
+            <Route path="/settings" element={<Settings />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
