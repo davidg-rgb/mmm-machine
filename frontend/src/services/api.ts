@@ -183,6 +183,14 @@ export async function getModelSummary(id: string): Promise<{ summary: string }> 
   return data;
 }
 
+export async function deleteModelRun(id: string): Promise<void> {
+  await api.delete(`/models/${id}`);
+}
+
+export async function deleteDataset(id: string): Promise<void> {
+  await api.delete(`/datasets/${id}`);
+}
+
 // ---- Budget Optimizer ----
 
 export async function optimizeBudget(

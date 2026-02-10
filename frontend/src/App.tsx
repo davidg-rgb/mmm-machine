@@ -10,6 +10,7 @@ import Register from "./pages/Register";
 
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Upload = lazy(() => import("./pages/Upload"));
+const Datasets = lazy(() => import("./pages/Datasets"));
 const ModelRun = lazy(() => import("./pages/ModelRun"));
 const Results = lazy(() => import("./pages/Results"));
 const Settings = lazy(() => import("./pages/Settings"));
@@ -78,6 +79,7 @@ export default function App() {
           >
             <Route path="/" element={<Dashboard />} />
             <Route path="/upload" element={<Upload />} />
+            <Route path="/datasets" element={<Datasets />} />
             <Route path="/models" element={<ModelRun />} />
             <Route path="/results/:runId" element={<Results />} />
             <Route path="/settings" element={<Settings />} />

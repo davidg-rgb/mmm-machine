@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
   Upload,
+  Database,
   FlaskConical,
   BarChart3,
   Settings,
@@ -11,6 +12,7 @@ import {
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/upload", icon: Upload, label: "Upload Data" },
+  { to: "/datasets", icon: Database, label: "Datasets" },
   { to: "/models", icon: FlaskConical, label: "Model Runs" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ];

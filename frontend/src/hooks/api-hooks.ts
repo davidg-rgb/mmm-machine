@@ -101,3 +101,27 @@ export function useModelResults(id: string) {
     enabled: !!id,
   });
 }
+
+export function useDeleteModelRun() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.deleteModelRun,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.modelRuns });
+      toast.success("Model run deleted");
+    },
+    onError: () => toast.error("Failed to delete model run"),
+  });
+}
+
+export function useDeleteDataset() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.deleteDataset,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.datasets });
+      toast.success("Dataset deleted");
+    },
+    onError: () => toast.error("Failed to delete dataset"),
+  });
+}

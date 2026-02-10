@@ -9,6 +9,7 @@ import {
   Loader2,
   Clock,
   ChevronRight,
+  Trash2,
 } from "lucide-react";
 import {
   Button,
@@ -25,7 +26,7 @@ import {
 import { Skeleton } from "@/components/shared/Skeleton";
 import ModelConfigForm from "@/components/model/ModelConfigForm";
 import ModelProgress from "@/components/model/ModelProgress";
-import { useModelRuns, useDatasets, useCreateModelRun, queryKeys } from "@/hooks/api-hooks";
+import { useModelRuns, useDatasets, useCreateModelRun, useDeleteModelRun, queryKeys } from "@/hooks/api-hooks";
 import { subscribeToProgress } from "@/services/api";
 import { getStatusBadgeVariant } from "@/lib/utils";
 import type { ModelRunConfig, ModelRun as ModelRunType } from "@/types";
@@ -49,6 +50,7 @@ export default function ModelRun() {
   usePageTitle("Model Runs");
   const queryClient = useQueryClient();
   const [showConfig, setShowConfig] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [sseProgress, setSseProgress] = useState<number | null>(null);
   const [sseMessage, setSseMessage] = useState<string | null>(null);
   const [etaSeconds, setEtaSeconds] = useState<number | undefined>(undefined);
@@ -57,6 +59,7 @@ export default function ModelRun() {
   const { data: modelRuns, isLoading: runsLoading } = useModelRuns();
   const { data: datasets } = useDatasets();
   const createModelRun = useCreateModelRun();
+  const deleteModelRun = useDeleteModelRun();
 
   const runs: ModelRunType[] = modelRuns ?? [];
   const activeRun = runs.find(
@@ -221,12 +224,52 @@ export default function ModelRun() {
                       {run.error_message}
                     </span>
                   ) : null}
+                  {["completed", "failed"].includes(run.status) && (
+                    <button
+                      onClick={() => setDeleteConfirmId(run.id)}
+                      className="rounded p-1 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500"
+                      title="Delete run"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Delete confirmation modal */}
+      <Modal open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
+        <ModalContent className="max-w-sm">
+          <ModalHeader>
+            <ModalTitle>Delete Model Run</ModalTitle>
+          </ModalHeader>
+          <div className="p-4">
+            <p className="text-sm text-gray-600">
+              Are you sure? This will permanently delete this model run and its results.
+            </p>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setDeleteConfirmId(null)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => {
+                  if (deleteConfirmId) {
+                    deleteModelRun.mutate(deleteConfirmId);
+                    setDeleteConfirmId(null);
+                  }
+                }}
+              >
+                Delete
+              </Button>
+            </div>
+          </div>
+        </ModalContent>
+      </Modal>
 
       {/* Config modal */}
       <Modal open={showConfig} onOpenChange={setShowConfig}>
