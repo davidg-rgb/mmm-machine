@@ -567,6 +567,12 @@ class PyMCMMMEngine(BaseMMM):
         return curves
 
     def serialize_model(self) -> bytes:
+        """Serialize the fitted model for storage.
+
+        SECURITY WARNING: Uses pickle serialization. NEVER deserialize
+        model artifacts from untrusted sources. These files should only
+        be loaded by trusted server-side code, never from user input.
+        """
         buf = io.BytesIO()
         pickle.dump({
             "trace": self.trace,

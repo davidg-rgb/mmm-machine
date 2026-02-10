@@ -27,7 +27,7 @@ export interface Dataset {
   frequency: string;
   column_mapping: ColumnMapping | null;
   validation_report: ValidationReport | null;
-  status: "pending" | "validated" | "error";
+  status: "uploaded" | "validated" | "validation_error";
   created_at: string;
 }
 

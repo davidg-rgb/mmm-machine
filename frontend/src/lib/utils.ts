@@ -32,6 +32,12 @@ export function getStatusBadgeVariant(
       return "info";
     case "failed":
       return "error";
+    case "validated":
+      return "success";
+    case "uploaded":
+      return "info";
+    case "validation_error":
+      return "error";
     default:
       return "default";
   }

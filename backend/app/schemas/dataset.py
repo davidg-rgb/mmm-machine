@@ -46,6 +46,8 @@ class DataSummary(BaseModel):
     total_media_spend: float
     avg_target_value: float
 
+    model_config = {"extra": "ignore"}
+
 
 class ValidationReport(BaseModel):
     is_valid: bool
@@ -53,6 +55,8 @@ class ValidationReport(BaseModel):
     warnings: list[ValidationItem]
     suggestions: list[ValidationItem]
     data_summary: DataSummary
+
+    model_config = {"extra": "ignore"}
 
 
 class DatasetResponse(BaseModel):
