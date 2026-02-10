@@ -6,7 +6,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import { TrendingUp, DollarSign, Target, Lightbulb } from "lucide-react";
+import { TrendingUp, DollarSign, Target, Lightbulb, Copy } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -16,6 +16,8 @@ import {
 } from "@/components/shared";
 import type { ModelResults } from "@/types";
 import { formatPercent } from "@/lib/utils";
+import { copyToClipboard } from "@/lib/export";
+import toast from "react-hot-toast";
 
 interface ExecutiveViewProps {
   results: ModelResults;
@@ -41,6 +43,16 @@ export default function ExecutiveView({ results }: ExecutiveViewProps) {
   const highestContrib = [...channel_results].sort(
     (a, b) => b.contribution_share - a.contribution_share,
   )[0];
+
+  async function handleCopySummary() {
+    const summaryText = `${summary_text}\n\nTop Recommendation:\n${top_recommendation}`;
+    const success = await copyToClipboard(summaryText);
+    if (success) {
+      toast.success("Summary copied to clipboard!");
+    } else {
+      toast.error("Failed to copy to clipboard");
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -182,8 +194,17 @@ export default function ExecutiveView({ results }: ExecutiveViewProps) {
           <div className="rounded-lg bg-brand-100 p-2">
             <Lightbulb className="h-5 w-5 text-brand-600" />
           </div>
-          <div>
-            <p className="text-sm font-medium text-gray-900">AI Summary</p>
+          <div className="flex-1">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-gray-900">AI Summary</p>
+              <button
+                onClick={handleCopySummary}
+                className="rounded-md p-1.5 text-gray-400 hover:bg-brand-100 hover:text-brand-600 transition-colors"
+                title="Copy summary to clipboard"
+              >
+                <Copy className="h-4 w-4" />
+              </button>
+            </div>
             <p className="mt-1 text-sm leading-relaxed text-gray-600">
               {summary_text}
             </p>
