@@ -16,12 +16,32 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
+# Initialize Sentry
+if settings.sentry_dsn:
+    import sentry_sdk
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn,
+        environment=settings.app_env,
+        traces_sample_rate=0.1 if settings.app_env == "production" else 1.0,
+        profiles_sample_rate=0.1 if settings.app_env == "production" else 0,
+    )
+
 # Configure structured logging
-logging.basicConfig(
-    level=logging.DEBUG if settings.app_debug else logging.INFO,
-    format="%(asctime)s %(levelname)-8s [%(name)s] %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+if settings.app_env == "production":
+    from pythonjsonlogger import jsonlogger
+    handler = logging.StreamHandler()
+    handler.setFormatter(jsonlogger.JsonFormatter(
+        fmt="%(asctime)s %(levelname)s %(name)s %(message)s",
+        rename_fields={"asctime": "timestamp", "levelname": "level"},
+    ))
+    logging.root.handlers = [handler]
+    logging.root.setLevel(logging.INFO)
+else:
+    logging.basicConfig(
+        level=logging.DEBUG if settings.app_debug else logging.INFO,
+        format="%(asctime)s %(levelname)-8s [%(name)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
 logger = logging.getLogger("mixmodel")
 
 limiter = Limiter(key_func=get_remote_address, enabled=settings.app_env != "test")
@@ -90,6 +110,15 @@ async def add_security_headers(request: Request, call_next):
     response.headers["X-XSS-Protection"] = "1; mode=block"
     if settings.app_env == "production":
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data: blob:; "
+            "connect-src 'self'; "
+            "font-src 'self'; "
+            "frame-ancestors 'none'"
+        )
     return response
 
 
@@ -191,6 +220,15 @@ async def health():
     except Exception as e:
         logger.warning(f"Health check storage failed: {e}")
         checks["storage"] = f"unhealthy: {e}" if settings.app_env == "development" else "unhealthy"
+
+    # Check Celery
+    try:
+        from app.tasks.celery_app import celery_app
+        celery_app.control.ping(timeout=2.0)
+        checks["celery"] = "healthy"
+    except Exception as e:
+        logger.warning(f"Health check celery failed: {e}")
+        checks["celery"] = "unhealthy"
 
     all_healthy = all(v == "healthy" for v in checks.values())
     overall = "healthy" if all_healthy else "degraded"

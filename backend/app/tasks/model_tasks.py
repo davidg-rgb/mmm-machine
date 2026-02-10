@@ -9,6 +9,7 @@ import logging
 from datetime import datetime, timezone
 
 import redis
+from celery.exceptions import SoftTimeLimitExceeded
 
 from app.core.config import get_settings
 from app.tasks.celery_app import celery_app
@@ -42,7 +43,7 @@ def _publish_progress(run_id: str, progress: int, message: str, stage: str, eta_
     r.publish(f"model_progress:{run_id}", json.dumps(event))
 
 
-@celery_app.task(bind=True, max_retries=1, time_limit=3600)
+@celery_app.task(bind=True, max_retries=1, time_limit=3600, soft_time_limit=3300)
 def run_mmm_model(self, model_run_id: str):
     """Celery task: load data, fit model, store results."""
     from sqlalchemy import create_engine
@@ -55,107 +56,120 @@ def run_mmm_model(self, model_run_id: str):
     engine = create_engine(settings.database_url_sync)
 
     try:
-        with Session(engine) as db:
-            model_run = db.get(ModelRun, model_run_id)
-            if not model_run:
-                logger.error(f"Model run {model_run_id} not found")
-                return
+        try:
+            with Session(engine) as db:
+                model_run = db.get(ModelRun, model_run_id)
+                if not model_run:
+                    logger.error(f"Model run {model_run_id} not found")
+                    return
 
-            dataset = db.get(Dataset, model_run.dataset_id)
-            if not dataset:
-                logger.error(f"Dataset {model_run.dataset_id} not found")
-                model_run.status = "failed"
-                model_run.error_message = "Associated dataset not found"
+                dataset = db.get(Dataset, model_run.dataset_id)
+                if not dataset:
+                    logger.error(f"Dataset {model_run.dataset_id} not found")
+                    model_run.status = "failed"
+                    model_run.error_message = "Associated dataset not found"
+                    db.commit()
+                    return
+
+                if not dataset.column_mapping:
+                    model_run.status = "failed"
+                    model_run.error_message = "Dataset has no column mapping"
+                    db.commit()
+                    return
+
+                # Update status to preprocessing
+                model_run.status = "preprocessing"
+                model_run.started_at = datetime.now(timezone.utc)
+                model_run.progress = 5
                 db.commit()
-                return
+                _publish_progress(model_run_id, 5, "Loading data...", "preprocessing")
 
-            if not dataset.column_mapping:
-                model_run.status = "failed"
-                model_run.error_message = "Dataset has no column mapping"
+                # Load data from S3
+                storage = StorageService()
+                df = storage.download_csv(dataset.s3_key)
+                _publish_progress(model_run_id, 10, "Data loaded, preparing model...", "preprocessing")
+
+                # Import engine here to avoid heavy imports at module level
+                from app.engine.pymc_engine import PyMCMMMEngine
+
+                # Build and fit model
+                mmm = PyMCMMMEngine(model_run.config)
+
+                # Prepare data
+                model_run.progress = 15
+                model_run.status = "preprocessing"
                 db.commit()
-                return
+                _publish_progress(model_run_id, 15, "Preparing data for model...", "preprocessing")
 
-            # Update status to preprocessing
-            model_run.status = "preprocessing"
-            model_run.started_at = datetime.now(timezone.utc)
-            model_run.progress = 5
-            db.commit()
-            _publish_progress(model_run_id, 5, "Loading data...", "preprocessing")
+                prepared = mmm.prepare_data(df, dataset.column_mapping)
 
-            # Load data from S3
-            storage = StorageService()
-            df = storage.download_csv(dataset.s3_key)
-            _publish_progress(model_run_id, 10, "Data loaded, preparing model...", "preprocessing")
+                # Build model
+                model_run.progress = 20
+                db.commit()
+                _publish_progress(model_run_id, 20, "Building statistical model...", "building")
 
-            # Import engine here to avoid heavy imports at module level
-            from app.engine.pymc_engine import PyMCMMMEngine
+                mmm.build_model(prepared)
 
-            # Build and fit model
-            mmm = PyMCMMMEngine(model_run.config)
-
-            # Prepare data
-            model_run.progress = 15
-            model_run.status = "preprocessing"
-            db.commit()
-            _publish_progress(model_run_id, 15, "Preparing data for model...", "preprocessing")
-
-            prepared = mmm.prepare_data(df, dataset.column_mapping)
-
-            # Build model
-            model_run.progress = 20
-            db.commit()
-            _publish_progress(model_run_id, 20, "Building statistical model...", "building")
-
-            mmm.build_model(prepared)
-
-            # Fit model with progress callback
-            model_run.status = "fitting"
-            model_run.progress = 25
-            db.commit()
-            _publish_progress(model_run_id, 25, "Starting MCMC sampling...", "fitting")
-
-            def progress_callback(pct: int, msg: str):
-                # Scale engine progress (5-90) to our range (25-85)
-                scaled = 25 + int((pct / 100) * 60)
-                model_run.progress = scaled
+                # Fit model with progress callback
                 model_run.status = "fitting"
+                model_run.progress = 25
                 db.commit()
-                _publish_progress(model_run_id, scaled, msg, "fitting")
+                _publish_progress(model_run_id, 25, "Starting MCMC sampling...", "fitting")
 
-            mmm.fit(prepared, progress_callback=progress_callback)
+                def progress_callback(pct: int, msg: str):
+                    # Scale engine progress (5-90) to our range (25-85)
+                    scaled = 25 + int((pct / 100) * 60)
+                    model_run.progress = scaled
+                    model_run.status = "fitting"
+                    db.commit()
+                    _publish_progress(model_run_id, scaled, msg, "fitting")
 
-            # Extract results
-            model_run.progress = 90
-            model_run.status = "postprocessing"
-            db.commit()
-            _publish_progress(model_run_id, 90, "Extracting results and generating insights...", "postprocessing")
+                mmm.fit(prepared, progress_callback=progress_callback)
 
-            results = mmm.extract_results()
-            from app.services.results_transformer import transform_results
-            results_dict = transform_results(results)
+                # Extract results
+                model_run.progress = 90
+                model_run.status = "postprocessing"
+                db.commit()
+                _publish_progress(model_run_id, 90, "Extracting results and generating insights...", "postprocessing")
 
-            # Upload model artifact to S3
-            model_run.progress = 95
-            db.commit()
-            _publish_progress(model_run_id, 95, "Saving model artifact...", "postprocessing")
+                results = mmm.extract_results()
+                from app.services.results_transformer import transform_results
+                results_dict = transform_results(results)
 
-            try:
-                artifact_bytes = mmm.serialize_model()
-                artifact_key = f"artifacts/{model_run.workspace_id}/{model_run_id}/model.pkl"
-                storage.upload_file(artifact_key, artifact_bytes, "application/octet-stream")
-                model_run.model_artifact_s3_key = artifact_key
-            except Exception:
-                logger.warning(f"Failed to serialize model artifact for {model_run_id}")
+                # Upload model artifact to S3
+                model_run.progress = 95
+                db.commit()
+                _publish_progress(model_run_id, 95, "Saving model artifact...", "postprocessing")
 
-            # Save results
-            model_run.results = results_dict
-            model_run.status = "completed"
-            model_run.progress = 100
-            model_run.completed_at = datetime.now(timezone.utc)
-            db.commit()
+                try:
+                    artifact_bytes = mmm.serialize_model()
+                    artifact_key = f"artifacts/{model_run.workspace_id}/{model_run_id}/model.pkl"
+                    storage.upload_file(artifact_key, artifact_bytes, "application/octet-stream")
+                    model_run.model_artifact_s3_key = artifact_key
+                except Exception:
+                    logger.warning(f"Failed to serialize model artifact for {model_run_id}")
 
-            _publish_progress(model_run_id, 100, "Model complete!", "done")
-            logger.info(f"Model run {model_run_id} completed successfully")
+                # Save results
+                model_run.results = results_dict
+                model_run.status = "completed"
+                model_run.progress = 100
+                model_run.completed_at = datetime.now(timezone.utc)
+                db.commit()
+
+                _publish_progress(model_run_id, 100, "Model complete!", "done")
+                logger.info(f"Model run {model_run_id} completed successfully")
+
+        except SoftTimeLimitExceeded:
+            logger.warning(f"Model run {model_run_id} exceeded soft time limit")
+            with Session(engine) as db:
+                model_run = db.get(ModelRun, model_run_id)
+                if model_run:
+                    model_run.status = "failed"
+                    model_run.error_message = "Model fitting exceeded time limit"
+                    model_run.completed_at = datetime.now(timezone.utc)
+                    db.commit()
+            _publish_progress(model_run_id, 0, "Model fitting exceeded time limit", "error")
+            raise
 
     except Exception as exc:
         logger.exception(f"Model run {model_run_id} failed: {exc}")

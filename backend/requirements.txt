@@ -44,6 +44,10 @@ sse-starlette==2.2.1
 # Security
 slowapi==0.1.9
 
+# Observability
+sentry-sdk[fastapi]==2.19.2
+python-json-logger==3.2.1
+
 # Dev/Test
 pytest==8.3.4
 pytest-asyncio==0.24.0
