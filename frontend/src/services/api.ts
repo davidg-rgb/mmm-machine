@@ -70,8 +70,18 @@ api.interceptors.response.use(
         const { data } = await api.post("/auth/refresh", {
           refresh_token: refreshToken,
         });
-        const { access_token, refresh_token: newRefresh, user } = data;
-        useAuthStore.getState().setAuth(user, access_token, newRefresh);
+        const { access_token, refresh_token: newRefresh } = data;
+        const currentUser = useAuthStore.getState().user;
+        if (currentUser) {
+          useAuthStore.getState().setAuth(currentUser, access_token, newRefresh);
+        } else {
+          // Edge case: no user in store, just update tokens
+          useAuthStore.getState().setAuth(
+            { id: "", email: "", full_name: "", role: "member", workspace_id: "" } as any,
+            access_token,
+            newRefresh,
+          );
+        }
         processQueue(null, access_token);
         originalRequest.headers.Authorization = `Bearer ${access_token}`;
         return api(originalRequest);

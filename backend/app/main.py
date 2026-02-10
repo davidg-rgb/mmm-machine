@@ -136,6 +136,22 @@ async def startup_ensure_storage():
             logger.warning("Could not verify/create S3 bucket on startup - MinIO may not be ready")
 
 
+@app.on_event("startup")
+async def startup_check_jwt_secret():
+    """Warn or raise if JWT secret is the insecure default."""
+    if settings.jwt_secret_key == "change-me-in-production":
+        if settings.app_env == "production":
+            raise RuntimeError(
+                "FATAL: JWT_SECRET_KEY is set to the default value. "
+                "Set a secure random secret via environment variable."
+            )
+        else:
+            logger.warning(
+                "JWT_SECRET_KEY is using the default value. "
+                "Set a secure secret before deploying to production."
+            )
+
+
 @app.get("/health")
 async def health():
     checks = {}
@@ -147,7 +163,8 @@ async def health():
             await conn.execute(sa.text("SELECT 1"))
         checks["database"] = "healthy"
     except Exception as e:
-        checks["database"] = f"unhealthy: {e}"
+        logger.warning(f"Health check database failed: {e}")
+        checks["database"] = f"unhealthy: {e}" if settings.app_env == "development" else "unhealthy"
 
     # Check Redis
     try:
@@ -156,7 +173,8 @@ async def health():
         r.ping()
         checks["redis"] = "healthy"
     except Exception as e:
-        checks["redis"] = f"unhealthy: {e}"
+        logger.warning(f"Health check redis failed: {e}")
+        checks["redis"] = f"unhealthy: {e}" if settings.app_env == "development" else "unhealthy"
 
     # Check S3/MinIO
     try:
@@ -171,7 +189,8 @@ async def health():
         s3.list_buckets()
         checks["storage"] = "healthy"
     except Exception as e:
-        checks["storage"] = f"unhealthy: {e}"
+        logger.warning(f"Health check storage failed: {e}")
+        checks["storage"] = f"unhealthy: {e}" if settings.app_env == "development" else "unhealthy"
 
     all_healthy = all(v == "healthy" for v in checks.values())
     overall = "healthy" if all_healthy else "degraded"

@@ -2,13 +2,13 @@ import asyncio
 import json
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette.sse import EventSourceResponse
 
-from app.api.dependencies import get_current_user
 from app.core.database import get_db
+from app.core.security import decode_token
 from app.models.model_run import ModelRun
 from app.models.user import User
 from app.services.progress import ProgressService
@@ -25,14 +25,26 @@ SSE_POLL_SECONDS = 0.5
 async def stream_progress(
     run_id: str,
     request: Request,
-    current_user: User = Depends(get_current_user),
+    token: str = Query(..., description="JWT access token"),
     db: AsyncSession = Depends(get_db),
 ):
     """SSE endpoint for real-time model fitting progress."""
+    # Verify token manually (EventSource can't send Authorization header)
+    payload = decode_token(token)
+    user_id = payload.get("sub")
+    token_type = payload.get("type")
+    if not user_id or token_type != "access":
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+
     result = await db.execute(
         select(ModelRun).where(
             ModelRun.id == run_id,
-            ModelRun.workspace_id == current_user.workspace_id,
+            ModelRun.workspace_id == user.workspace_id,
         )
     )
     model_run = result.scalar_one_or_none()
@@ -65,7 +77,9 @@ async def stream_progress(
                     break
 
                 # Poll for Redis messages (non-blocking)
-                message = pubsub.get_message(ignore_subscribe_messages=True, timeout=SSE_POLL_SECONDS)
+                message = await asyncio.to_thread(
+                    pubsub.get_message, ignore_subscribe_messages=True, timeout=SSE_POLL_SECONDS
+                )
                 if message and message["type"] == "message":
                     data = message["data"]
                     if isinstance(data, bytes):
