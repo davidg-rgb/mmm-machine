@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/auth";
-import { register, getMe } from "@/services/api";
+import { register } from "@/services/api";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { BarChart3, Eye, EyeOff, Check, X } from "lucide-react";
 import { Button } from "@/components/shared";
@@ -57,19 +57,13 @@ export default function Register() {
 
     setLoading(true);
     try {
-      const tokens = await register(
+      const res = await register(
         email,
         password,
         fullName,
         workspaceName || undefined,
       );
-      useAuthStore.getState().setAuth(
-        { id: "", email: "", full_name: "", role: "admin", workspace_id: "" },
-        tokens.access_token,
-        tokens.refresh_token,
-      );
-      const user = await getMe();
-      setAuth(user, tokens.access_token, tokens.refresh_token);
+      setAuth(res.user, res.access_token, res.refresh_token);
       navigate("/");
     } catch {
       setError("Registration failed. Email may already be in use.");

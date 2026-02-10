@@ -18,6 +18,7 @@ from app.core.security import (
 from app.models.user import User
 from app.models.workspace import Workspace
 from app.schemas.auth import (
+    AuthResponse,
     LoginRequest,
     RefreshRequest,
     RegisterRequest,
@@ -30,7 +31,7 @@ settings = get_settings()
 limiter = Limiter(key_func=get_remote_address, enabled=settings.app_env != "test")
 
 
-@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
 @limiter.limit("5/minute")
 async def register(request: Request, body: RegisterRequest, db: AsyncSession = Depends(get_db)):
     existing = await db.execute(select(User).where(User.email == body.email))
@@ -54,14 +55,22 @@ async def register(request: Request, body: RegisterRequest, db: AsyncSession = D
     access_token = create_access_token(user.id, {"workspace_id": workspace.id})
     refresh_token = create_refresh_token(user.id)
 
-    return TokenResponse(
+    return AuthResponse(
         access_token=access_token,
         refresh_token=refresh_token,
         expires_in=settings.jwt_access_token_expire_minutes * 60,
+        user=UserResponse(
+            id=user.id,
+            email=user.email,
+            full_name=user.full_name,
+            role=user.role,
+            workspace_id=workspace.id,
+            created_at=user.created_at.isoformat() if user.created_at else "",
+        ),
     )
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=AuthResponse)
 @limiter.limit("5/minute")
 async def login(request: Request, body: LoginRequest, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.email == body.email))
@@ -73,10 +82,18 @@ async def login(request: Request, body: LoginRequest, db: AsyncSession = Depends
     access_token = create_access_token(user.id, {"workspace_id": user.workspace_id})
     refresh_token = create_refresh_token(user.id)
 
-    return TokenResponse(
+    return AuthResponse(
         access_token=access_token,
         refresh_token=refresh_token,
         expires_in=settings.jwt_access_token_expire_minutes * 60,
+        user=UserResponse(
+            id=user.id,
+            email=user.email,
+            full_name=user.full_name,
+            role=user.role,
+            workspace_id=user.workspace_id,
+            created_at=user.created_at.isoformat() if user.created_at else "",
+        ),
     )
 
 

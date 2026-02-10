@@ -6,6 +6,12 @@ from sqlalchemy import engine_from_config, pool
 from alembic import context
 from app.core.database import Base
 
+# Import all models so Base.metadata is populated for autogenerate
+from app.models.user import User  # noqa: F401
+from app.models.workspace import Workspace  # noqa: F401
+from app.models.dataset import Dataset  # noqa: F401
+from app.models.model_run import ModelRun  # noqa: F401
+
 config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

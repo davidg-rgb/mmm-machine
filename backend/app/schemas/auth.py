@@ -31,6 +31,14 @@ class TokenResponse(BaseModel):
     expires_in: int
 
 
+class AuthResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    expires_in: int
+    user: "UserResponse"
+
+
 class RefreshRequest(BaseModel):
     refresh_token: str
 
@@ -44,3 +52,6 @@ class UserResponse(BaseModel):
     created_at: str
 
     model_config = {"from_attributes": True}
+
+
+AuthResponse.model_rebuild()

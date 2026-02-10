@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/auth";
-import { login, getMe } from "@/services/api";
+import { login } from "@/services/api";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { BarChart3, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/shared";
@@ -38,14 +38,8 @@ export default function Login() {
 
     setLoading(true);
     try {
-      const tokens = await login(email, password);
-      useAuthStore.getState().setAuth(
-        { id: "", email: "", full_name: "", role: "member", workspace_id: "" },
-        tokens.access_token,
-        tokens.refresh_token,
-      );
-      const user = await getMe();
-      setAuth(user, tokens.access_token, tokens.refresh_token);
+      const res = await login(email, password);
+      setAuth(res.user, res.access_token, res.refresh_token);
       navigate("/");
     } catch {
       setError("Invalid email or password. Please try again.");
