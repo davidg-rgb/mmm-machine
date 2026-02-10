@@ -1,4 +1,4 @@
-.PHONY: help dev dev-full dev-down dev-logs db-migrate db-upgrade db-downgrade test test-backend test-frontend lint format flower
+.PHONY: help dev dev-full dev-down dev-logs db-migrate db-upgrade db-downgrade test test-backend test-frontend lint format flower seed
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -65,6 +65,10 @@ lint: ## Lint all code
 format: ## Format all code
 	cd backend && ruff format .
 	cd frontend && npm run format
+
+# Data
+seed: ## Seed demo data (demo@mixmodel.app / demo123)
+	cd backend && python -m scripts.seed
 
 # Monitoring
 flower: ## Open Celery Flower dashboard

@@ -5,10 +5,14 @@ import uuid
 
 import pandas as pd
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.requests import Request
 
 from app.api.dependencies import get_current_user
+from app.core.config import get_settings
 from app.core.database import get_db
 from app.models.dataset import Dataset
 from app.models.user import User
@@ -27,6 +31,8 @@ from app.services.storage import StorageService
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/datasets", tags=["datasets"])
+settings = get_settings()
+limiter = Limiter(key_func=get_remote_address, enabled=settings.app_env != "test")
 
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 ALLOWED_EXTENSIONS = {".csv", ".xlsx", ".xls"}
@@ -68,6 +74,44 @@ def _parse_file(contents: bytes, filename: str) -> pd.DataFrame:
         raise ValueError(f"Unsupported file type: {ext}")
 
 
+_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _check_csv_injection(df: pd.DataFrame) -> pd.DataFrame:
+    """Check for potential CSV formula injection and sanitize column names.
+
+    Logs warnings for suspicious cell values but does not block the upload,
+    since marketing data commonly uses these characters. Leading '=' in
+    column names is stripped as a precaution.
+    """
+    # Sanitize column names: strip leading '='
+    renamed = {}
+    for col in df.columns:
+        col_str = str(col)
+        if col_str.startswith("="):
+            clean = col_str.lstrip("=")
+            renamed[col] = clean
+            logger.warning("CSV injection: column name '%s' started with '=', renamed to '%s'", col_str, clean)
+    if renamed:
+        df = df.rename(columns=renamed)
+
+    # Scan string cells for formula prefixes (warn only)
+    suspect_count = 0
+    for col in df.select_dtypes(include=["object"]).columns:
+        for val in df[col].dropna().head(200):
+            if isinstance(val, str) and val and val[0] in _FORMULA_PREFIXES:
+                suspect_count += 1
+    if suspect_count:
+        logger.warning(
+            "CSV injection check: %d cell(s) start with formula-like characters (%s). "
+            "Upload allowed; values are stored as-is.",
+            suspect_count,
+            ", ".join(_FORMULA_PREFIXES[:4]),
+        )
+
+    return df
+
+
 def _build_column_info(df: pd.DataFrame) -> list[ColumnInfo]:
     """Build column metadata for the upload response."""
     columns = []
@@ -103,7 +147,9 @@ def _dataset_to_response(d: Dataset) -> DatasetResponse:
 
 
 @router.post("/upload", response_model=UploadResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit("10/minute")
 async def upload_dataset(
+    request: Request,
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -150,6 +196,9 @@ async def upload_dataset(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Uploaded file contains no data rows.",
         )
+
+    # Check for CSV formula injection (warn + sanitize column names)
+    df = _check_csv_injection(df)
 
     # Upload raw file to S3
     dataset_id = str(uuid.uuid4())
@@ -313,7 +362,9 @@ async def update_mapping(
 
 
 @router.post("/{dataset_id}/validate", response_model=ValidationReport)
+@limiter.limit("20/minute")
 async def validate_dataset(
+    request: Request,
     dataset_id: str,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),

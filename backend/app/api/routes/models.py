@@ -1,10 +1,14 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.requests import Request
 
 from app.api.dependencies import get_current_user
+from app.core.config import get_settings
 from app.core.database import get_db
 from app.models.dataset import Dataset
 from app.models.model_run import ModelRun
@@ -14,10 +18,14 @@ from app.schemas.model_run import ModelRunConfig, ModelRunResponse, OptimizeBudg
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/models", tags=["models"])
+settings = get_settings()
+limiter = Limiter(key_func=get_remote_address, enabled=settings.app_env != "test")
 
 
 @router.post("/run", response_model=ModelRunResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit("5/minute")
 async def create_model_run(
+    request: Request,
     body: ModelRunConfig,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -143,7 +151,9 @@ async def delete_model_run(
 
 
 @router.post("/{run_id}/optimize", response_model=OptimizeBudgetResponse)
+@limiter.limit("20/minute")
 async def optimize_budget(
+    request: Request,
     run_id: str,
     body: OptimizeBudgetRequest,
     current_user: User = Depends(get_current_user),
