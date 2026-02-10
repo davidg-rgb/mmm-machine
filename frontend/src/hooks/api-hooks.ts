@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as api from "@/services/api";
 import toast from "react-hot-toast";
+import type { ColumnMapping } from "@/types";
 
 // Query keys
 export const queryKeys = {
@@ -45,7 +46,7 @@ export function useUploadDataset() {
 export function useUpdateMapping(id: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (mapping: unknown) => api.updateMapping(id, mapping),
+    mutationFn: (mapping: ColumnMapping) => api.updateMapping(id, mapping),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.dataset(id) });
     },

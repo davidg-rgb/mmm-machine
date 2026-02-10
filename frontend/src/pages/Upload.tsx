@@ -40,11 +40,11 @@ export default function Upload() {
 
   function handleFileAccepted(file: File) {
     uploadMutation.mutate(file, {
-      onSuccess: (data: { id: string; headers?: string[]; preview_rows?: string[][] }) => {
-        setDatasetId(data.id);
-        setHeaders(data.headers ?? []);
-        setPreviewRows(data.preview_rows ?? []);
-        datasetStore.setCurrentDataset(data.id);
+      onSuccess: (data) => {
+        setDatasetId(data.dataset_id);
+        setHeaders(data.columns.map((c) => c.name));
+        setPreviewRows(data.preview_rows);
+        datasetStore.setCurrentDataset(data.dataset_id);
         setStep(2);
       },
     });

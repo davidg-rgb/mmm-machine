@@ -16,11 +16,26 @@ interface AuthState {
   isAuthenticated: boolean;
   setAuth: (user: User, accessToken: string, refreshToken: string) => void;
   logout: () => void;
+  checkTokenExpiry: () => void;
+}
+
+function isTokenExpired(token: string): boolean {
+  try {
+    const parts = token.split(".");
+    if (!parts[1]) return true;
+    const payload = JSON.parse(atob(parts[1]));
+    const exp = payload.exp;
+    if (!exp) return false;
+    // Add 30 second buffer
+    return Date.now() >= (exp - 30) * 1000;
+  } catch {
+    return true;
+  }
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       accessToken: null,
       refreshToken: null,
@@ -34,6 +49,17 @@ export const useAuthStore = create<AuthState>()(
           refreshToken: null,
           isAuthenticated: false,
         }),
+      checkTokenExpiry: () => {
+        const { accessToken, refreshToken } = get();
+        if (!accessToken || !refreshToken) return;
+        // If refresh token is expired, log out completely
+        if (isTokenExpired(refreshToken)) {
+          get().logout();
+          return;
+        }
+        // If access token is expired but refresh is still valid,
+        // keep authenticated - the interceptor will handle refresh
+      },
     }),
     { name: "mixmodel-auth" },
   ),

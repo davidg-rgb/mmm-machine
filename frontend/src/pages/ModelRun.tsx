@@ -28,7 +28,7 @@ import ModelProgress from "@/components/model/ModelProgress";
 import { useModelRuns, useDatasets, useCreateModelRun, queryKeys } from "@/hooks/api-hooks";
 import { subscribeToProgress } from "@/services/api";
 import { getStatusBadgeVariant } from "@/lib/utils";
-import type { ModelRunConfig, ModelRun as ModelRunType, ProgressEvent } from "@/types";
+import type { ModelRunConfig, ModelRun as ModelRunType } from "@/types";
 
 function StatusIcon({ status }: { status: string }) {
   switch (status) {
@@ -95,8 +95,7 @@ export default function ModelRun() {
       return;
     }
 
-    const es = subscribeToProgress(activeRunId, (event: unknown) => {
-      const evt = event as ProgressEvent;
+    const es = subscribeToProgress(activeRunId, (evt) => {
       setSseProgress(evt.progress);
       setSseMessage(evt.message);
       if (evt.eta_seconds != null) {

@@ -1,8 +1,19 @@
 import axios from "axios";
 import { useAuthStore } from "../store/auth";
+import type {
+  TokenResponse,
+  User,
+  Dataset,
+  ColumnMapping,
+  ValidationReport,
+  ModelRun,
+  ModelResults,
+  ModelRunConfig,
+  ProgressEvent,
+} from "../types";
 
 const api = axios.create({
-  baseURL: "/api",
+  baseURL: import.meta.env.VITE_API_URL || "/api",
   headers: { "Content-Type": "application/json" },
 });
 
@@ -78,7 +89,7 @@ api.interceptors.response.use(
 
 // ---- Auth ----
 
-export async function login(email: string, password: string) {
+export async function login(email: string, password: string): Promise<TokenResponse & { user: User }> {
   const { data } = await api.post("/auth/login", { email, password });
   return data;
 }
@@ -88,7 +99,7 @@ export async function register(
   password: string,
   full_name: string,
   workspace_name?: string,
-) {
+): Promise<TokenResponse & { user: User }> {
   const { data } = await api.post("/auth/register", {
     email,
     password,
@@ -98,14 +109,23 @@ export async function register(
   return data;
 }
 
-export async function getMe() {
+export async function getMe(): Promise<User> {
   const { data } = await api.get("/auth/me");
   return data;
 }
 
 // ---- Datasets ----
 
-export async function uploadDataset(file: File) {
+interface UploadResponse {
+  dataset_id: string;
+  filename: string;
+  row_count: number;
+  columns: Array<{ name: string; dtype: string; null_count: number; sample_values: string[] }>;
+  preview_rows: string[][];
+  auto_mapping: ColumnMapping | null;
+}
+
+export async function uploadDataset(file: File): Promise<UploadResponse> {
   const form = new FormData();
   form.append("file", file);
   const { data } = await api.post("/datasets/upload", form, {
@@ -114,51 +134,51 @@ export async function uploadDataset(file: File) {
   return data;
 }
 
-export async function listDatasets() {
+export async function listDatasets(): Promise<Dataset[]> {
   const { data } = await api.get("/datasets");
   return data;
 }
 
-export async function getDataset(id: string) {
+export async function getDataset(id: string): Promise<Dataset> {
   const { data } = await api.get(`/datasets/${id}`);
   return data;
 }
 
-export async function updateMapping(id: string, mapping: unknown) {
+export async function updateMapping(id: string, mapping: ColumnMapping): Promise<Dataset> {
   const { data } = await api.put(`/datasets/${id}/mapping`, {
     column_mapping: mapping,
   });
   return data;
 }
 
-export async function validateDataset(id: string) {
+export async function validateDataset(id: string): Promise<ValidationReport> {
   const { data } = await api.post(`/datasets/${id}/validate`);
   return data;
 }
 
 // ---- Model Runs ----
 
-export async function createModelRun(config: unknown) {
+export async function createModelRun(config: ModelRunConfig): Promise<ModelRun> {
   const { data } = await api.post("/models/run", config);
   return data;
 }
 
-export async function listModelRuns() {
+export async function listModelRuns(): Promise<ModelRun[]> {
   const { data } = await api.get("/models");
   return data;
 }
 
-export async function getModelRun(id: string) {
+export async function getModelRun(id: string): Promise<ModelRun> {
   const { data } = await api.get(`/models/${id}`);
   return data;
 }
 
-export async function getModelResults(id: string) {
+export async function getModelResults(id: string): Promise<ModelResults> {
   const { data } = await api.get(`/models/${id}/results`);
   return data;
 }
 
-export async function getModelSummary(id: string) {
+export async function getModelSummary(id: string): Promise<{ summary: string }> {
   const { data } = await api.get(`/models/${id}/summary`);
   return data;
 }
@@ -167,10 +187,11 @@ export async function getModelSummary(id: string) {
 
 export function subscribeToProgress(
   runId: string,
-  onEvent: (event: unknown) => void,
+  onEvent: (event: ProgressEvent) => void,
 ): EventSource {
   const token = useAuthStore.getState().accessToken;
-  const es = new EventSource(`/api/models/${runId}/progress?token=${token}`);
+  const base = import.meta.env.VITE_API_URL || "/api";
+  const es = new EventSource(`${base}/models/${runId}/progress?token=${token}`);
   es.addEventListener("progress", (e) => {
     onEvent(JSON.parse(e.data));
   });
