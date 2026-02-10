@@ -30,6 +30,22 @@ class ModelRunResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class OptimizeBudgetRequest(BaseModel):
+    total_budget: float
+    min_per_channel: dict[str, float] | None = None
+    max_per_channel: dict[str, float] | None = None
+
+
+class OptimizeBudgetResponse(BaseModel):
+    allocations: dict[str, float]
+    predicted_contributions: dict[str, float]
+    total_predicted_contribution: float
+    current_allocations: dict[str, float]
+    current_contributions: dict[str, float]
+    total_current_contribution: float
+    improvement_pct: float
+
+
 class ProgressEvent(BaseModel):
     status: str
     progress: int

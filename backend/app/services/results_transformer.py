@@ -91,4 +91,6 @@ def transform_results(engine_results: EngineResults) -> dict:
         "decomposition_ts": decomposition_ts,
         "summary_text": summary_text,
         "top_recommendation": top_recommendation,
+        "response_curves": engine_results.response_curves if isinstance(engine_results.response_curves, dict) else {},
+        "adstock_decay_curves": getattr(engine_results, 'adstock_decay_curves', {}),
     }

@@ -93,6 +93,7 @@ class EngineResults:
     summary_text: str = ""
     top_recommendation: str = ""
     response_curves: dict[str, ResponseCurvePoint] = field(default_factory=dict)
+    adstock_decay_curves: dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         """Serialize to a JSON-compatible dict. Handles nested dataclasses."""

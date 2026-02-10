@@ -9,7 +9,7 @@ from app.core.database import get_db
 from app.models.dataset import Dataset
 from app.models.model_run import ModelRun
 from app.models.user import User
-from app.schemas.model_run import ModelRunConfig, ModelRunResponse
+from app.schemas.model_run import ModelRunConfig, ModelRunResponse, OptimizeBudgetRequest, OptimizeBudgetResponse
 
 logger = logging.getLogger(__name__)
 
@@ -140,6 +140,32 @@ async def delete_model_run(
             logger.warning(f"Failed to delete S3 artifact for model run {run_id}")
 
     await db.delete(model_run)
+
+
+@router.post("/{run_id}/optimize", response_model=OptimizeBudgetResponse)
+async def optimize_budget(
+    run_id: str,
+    body: OptimizeBudgetRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    model_run = await _get_run(run_id, current_user.workspace_id, db)
+    if model_run.status != "completed" or not model_run.results:
+        raise HTTPException(status_code=400, detail="Model run not completed yet")
+
+    if not model_run.results.get("response_curves"):
+        raise HTTPException(status_code=400, detail="Response curves not available for this model run")
+
+    from app.services.budget_optimizer import BudgetOptimizer
+
+    optimizer = BudgetOptimizer()
+    result = optimizer.optimize(
+        model_results=model_run.results,
+        total_budget=body.total_budget,
+        min_per_channel=body.min_per_channel,
+        max_per_channel=body.max_per_channel,
+    )
+    return result
 
 
 async def _get_run(run_id: str, workspace_id: str, db: AsyncSession) -> ModelRun:

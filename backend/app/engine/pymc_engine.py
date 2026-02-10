@@ -200,6 +200,20 @@ class PyMCMMMEngine(BaseMMM):
             mape = 0.0
         diagnostics.mape = mape
 
+        # ---- Response curves ----
+        try:
+            response_curves_data = self.generate_response_curves()
+        except Exception:
+            logger.warning("Failed to generate response curves")
+            response_curves_data = {}
+
+        # ---- Adstock decay curves ----
+        try:
+            adstock_decay_data = self.generate_adstock_decay_curves()
+        except Exception:
+            logger.warning("Failed to generate adstock decay curves")
+            adstock_decay_data = {}
+
         return EngineResults(
             diagnostics=diagnostics,
             base_sales_pct=base_sales_pct,
@@ -209,6 +223,8 @@ class PyMCMMMEngine(BaseMMM):
             adstock_params=adstock_params,
             saturation_params=saturation_params,
             decomposition_ts=decomposition_ts,
+            response_curves=response_curves_data,
+            adstock_decay_curves=adstock_decay_data,
         )
 
     def _extract_diagnostics(self) -> Diagnostics:
