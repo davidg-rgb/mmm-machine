@@ -15,12 +15,62 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle 401 by logging out
+// Handle 401 with token refresh
+let isRefreshing = false;
+let pendingRequests: Array<{
+  resolve: (token: string) => void;
+  reject: (err: unknown) => void;
+}> = [];
+
+function processQueue(error: unknown, token: string | null) {
+  pendingRequests.forEach((p) => {
+    if (token) p.resolve(token);
+    else p.reject(error);
+  });
+  pendingRequests = [];
+}
+
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      useAuthStore.getState().logout();
+  async (error) => {
+    const originalRequest = error.config;
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url?.includes("/auth/refresh") &&
+      !originalRequest.url?.includes("/auth/login")
+    ) {
+      if (isRefreshing) {
+        return new Promise<string>((resolve, reject) => {
+          pendingRequests.push({ resolve, reject });
+        }).then((token) => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return api(originalRequest);
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const refreshToken = useAuthStore.getState().refreshToken;
+        if (!refreshToken) throw new Error("No refresh token");
+
+        const { data } = await api.post("/auth/refresh", {
+          refresh_token: refreshToken,
+        });
+        const { access_token, refresh_token: newRefresh, user } = data;
+        useAuthStore.getState().setAuth(user, access_token, newRefresh);
+        processQueue(null, access_token);
+        originalRequest.headers.Authorization = `Bearer ${access_token}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        useAuthStore.getState().logout();
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
     }
     return Promise.reject(error);
   },

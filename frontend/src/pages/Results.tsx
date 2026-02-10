@@ -7,12 +7,13 @@ import {
   ArrowLeft,
   Download,
 } from "lucide-react";
-import { Button, Badge } from "@/components/shared";
+import { Button, Badge, Skeleton } from "@/components/shared";
 import { cn } from "@/lib/utils";
 import ExecutiveView from "@/components/results/ExecutiveView";
 import ManagerView from "@/components/results/ManagerView";
 import AnalystView from "@/components/results/AnalystView";
-import { mockModelRuns } from "@/services/mock-data";
+import { useModelRun, useModelResults } from "@/hooks/api-hooks";
+import toast from "react-hot-toast";
 
 type ViewMode = "executive" | "manager" | "analyst";
 
@@ -26,16 +27,53 @@ export default function Results() {
   const { runId } = useParams<{ runId: string }>();
   const [view, setView] = useState<ViewMode>("executive");
 
-  const run = mockModelRuns.find((r) => r.id === runId);
+  const { data: run, isLoading: runLoading, error: runError } = useModelRun(runId ?? "");
+  const { data: results, isLoading: resultsLoading, error: resultsError } = useModelResults(runId ?? "");
 
-  if (!run || !run.results) {
+  function handleExport() {
+    if (!results || !run) return;
+    const blob = new Blob([JSON.stringify(results, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${run.name}-results.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Report exported");
+  }
+
+  if (runLoading || resultsLoading) {
+    return (
+      <div className="mx-auto max-w-6xl space-y-6">
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-8 w-full" />
+        <Skeleton className="h-96 w-full" />
+      </div>
+    );
+  }
+
+  if (runError || !run) {
+    return (
+      <div className="mx-auto max-w-6xl">
+        <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
+          <p className="text-gray-500">Model run not found.</p>
+          <Link to="/models">
+            <Button variant="outline" className="mt-4">
+              <ArrowLeft className="h-4 w-4" />
+              Back to Model Runs
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (resultsError || !results) {
     return (
       <div className="mx-auto max-w-6xl">
         <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
           <p className="text-gray-500">
-            {!run
-              ? "Model run not found."
-              : "Results are not yet available for this run."}
+            Results are not yet available for this run.
           </p>
           <Link to="/models">
             <Button variant="outline" className="mt-4">
@@ -70,7 +108,7 @@ export default function Results() {
               new Date(run.completed_at).toLocaleDateString()}
           </p>
         </div>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" onClick={handleExport}>
           <Download className="h-4 w-4" />
           Export Report
         </Button>
@@ -106,9 +144,9 @@ export default function Results() {
       </p>
 
       {/* View Content */}
-      {view === "executive" && <ExecutiveView results={run.results} />}
-      {view === "manager" && <ManagerView results={run.results} />}
-      {view === "analyst" && <AnalystView results={run.results} />}
+      {view === "executive" && <ExecutiveView results={results} />}
+      {view === "manager" && <ManagerView results={results} />}
+      {view === "analyst" && <AnalystView results={results} />}
     </div>
   );
 }

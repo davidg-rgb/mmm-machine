@@ -2,17 +2,18 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/shared";
+import { Card, CardContent, CardHeader, CardTitle, Spinner } from "@/components/shared";
 import DataUploader from "@/components/upload/DataUploader";
 import DataPreview from "@/components/upload/DataPreview";
 import ColumnMapper from "@/components/upload/ColumnMapper";
 import ValidationPanel from "@/components/upload/ValidationPanel";
-import type { ColumnMapping } from "@/types";
 import {
-  mockCsvHeaders,
-  mockCsvRows,
-  mockValidationReport,
-} from "@/services/mock-data";
+  useUploadDataset,
+  useUpdateMapping,
+  useValidateDataset,
+} from "@/hooks/api-hooks";
+import { useDatasetStore } from "@/store/dataset";
+import type { ColumnMapping, ValidationReport } from "@/types";
 
 type WizardStep = 1 | 2 | 3;
 
@@ -24,18 +25,41 @@ const stepLabels: Record<WizardStep, string> = {
 
 export default function Upload() {
   const [step, setStep] = useState<WizardStep>(1);
-  const [_file, setFile] = useState<File | null>(null);
-  const [_mapping, setMapping] = useState<ColumnMapping | null>(null);
+  const [datasetId, setDatasetId] = useState<string | null>(null);
+  const [headers, setHeaders] = useState<string[]>([]);
+  const [previewRows, setPreviewRows] = useState<string[][]>([]);
+  const [validationReport, setValidationReport] = useState<ValidationReport | null>(null);
   const navigate = useNavigate();
+  const datasetStore = useDatasetStore();
+
+  const uploadMutation = useUploadDataset();
+  const mappingMutation = useUpdateMapping(datasetId ?? "");
+  const validateMutation = useValidateDataset(datasetId ?? "");
 
   function handleFileAccepted(file: File) {
-    setFile(file);
-    setStep(2);
+    uploadMutation.mutate(file, {
+      onSuccess: (data: { id: string; headers?: string[]; preview_rows?: string[][] }) => {
+        setDatasetId(data.id);
+        setHeaders(data.headers ?? []);
+        setPreviewRows(data.preview_rows ?? []);
+        datasetStore.setCurrentDataset(data.id);
+        setStep(2);
+      },
+    });
   }
 
   function handleMappingComplete(mapping: ColumnMapping) {
-    setMapping(mapping);
-    setStep(3);
+    datasetStore.setColumnMapping(mapping);
+    mappingMutation.mutate(mapping, {
+      onSuccess: () => {
+        validateMutation.mutate(undefined, {
+          onSuccess: (data: ValidationReport) => {
+            setValidationReport(data);
+            setStep(3);
+          },
+        });
+      },
+    });
   }
 
   function handleProceed() {
@@ -95,22 +119,42 @@ export default function Upload() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {step === 1 && <DataUploader onFileAccepted={handleFileAccepted} />}
-
-          {step === 2 && (
-            <div className="space-y-5">
-              <DataPreview headers={mockCsvHeaders} rows={mockCsvRows} />
-              <ColumnMapper
-                headers={mockCsvHeaders}
-                onMappingComplete={handleMappingComplete}
-                onBack={() => setStep(1)}
-              />
-            </div>
+          {step === 1 && (
+            uploadMutation.isPending ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-3">
+                <Spinner size="lg" />
+                <p className="text-sm text-gray-500">Uploading your dataset...</p>
+              </div>
+            ) : (
+              <DataUploader onFileAccepted={handleFileAccepted} />
+            )
           )}
 
-          {step === 3 && (
+          {step === 2 && (
+            mappingMutation.isPending || validateMutation.isPending ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-3">
+                <Spinner size="lg" />
+                <p className="text-sm text-gray-500">
+                  {mappingMutation.isPending
+                    ? "Saving column mapping..."
+                    : "Validating your data..."}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                <DataPreview headers={headers} rows={previewRows} />
+                <ColumnMapper
+                  headers={headers}
+                  onMappingComplete={handleMappingComplete}
+                  onBack={() => setStep(1)}
+                />
+              </div>
+            )
+          )}
+
+          {step === 3 && validationReport && (
             <ValidationPanel
-              report={mockValidationReport}
+              report={validationReport}
               onProceed={handleProceed}
               onBack={() => setStep(2)}
             />

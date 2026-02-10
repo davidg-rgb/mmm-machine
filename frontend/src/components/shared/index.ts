@@ -30,3 +30,4 @@ export {
 } from "./Modal";
 export { Skeleton } from "./Skeleton";
 export { Spinner } from "./Spinner";
+export { ErrorBoundary } from "./ErrorBoundary";
