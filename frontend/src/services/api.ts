@@ -183,6 +183,22 @@ export async function getModelSummary(id: string): Promise<{ summary: string }> 
   return data;
 }
 
+// ---- Budget Optimizer ----
+
+export async function optimizeBudget(
+  runId: string,
+  totalBudget: number,
+  minPerChannel?: Record<string, number>,
+  maxPerChannel?: Record<string, number>,
+): Promise<any> {
+  const { data } = await api.post(`/models/${runId}/optimize`, {
+    total_budget: totalBudget,
+    min_per_channel: minPerChannel,
+    max_per_channel: maxPerChannel,
+  });
+  return data;
+}
+
 // ---- SSE Progress ----
 
 export function subscribeToProgress(

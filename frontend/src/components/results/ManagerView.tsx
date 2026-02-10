@@ -13,6 +13,7 @@ import {
   Area,
   AreaChart,
 } from "recharts";
+import Plot from "react-plotly.js";
 import {
   Card,
   CardContent,
@@ -22,12 +23,14 @@ import {
 } from "@/components/shared";
 import type { ModelResults } from "@/types";
 import { formatCurrency } from "@/lib/utils";
+import BudgetOptimizer from "./BudgetOptimizer";
 
 interface ManagerViewProps {
   results: ModelResults;
+  runId: string;
 }
 
-export default function ManagerView({ results }: ManagerViewProps) {
+export default function ManagerView({ results, runId }: ManagerViewProps) {
   const { channel_results, decomposition_ts, base_sales } = results;
 
   // ROAS bar chart data
@@ -52,21 +55,33 @@ export default function ManagerView({ results }: ManagerViewProps) {
     })),
   ];
 
-  // Saturation data
-  const saturationData = channel_results.map((ch) => ({
-    channel: ch.channel,
-    saturation: Math.round(ch.saturation_pct * 100),
-  }));
-
-  // Adstock decay curves
-  const adstockData = Array.from({ length: 12 }, (_, week) => {
-    const point: Record<string, number | string> = { week: `W${week}` };
-    for (const ch of channel_results) {
-      const alpha = ch.adstock_params.alpha ?? 0.5;
-      point[ch.channel] = Math.round(Math.pow(alpha, week) * 100);
+  // Adstock decay curves (prefer backend-computed, fallback to geometric)
+  const adstockData = (() => {
+    const curves = results.adstock_decay_curves;
+    if (curves && Object.keys(curves).length > 0) {
+      // Use backend-computed curves (handles both geometric + Weibull)
+      const firstChannel = Object.values(curves)[0];
+      return (firstChannel?.weeks || []).map((week: number, idx: number) => {
+        const point: Record<string, number | string> = { week: `W${week}` };
+        for (const ch of channel_results) {
+          const chCurve = curves[ch.channel];
+          point[ch.channel] = chCurve
+            ? Math.round((chCurve.decay_weights[idx] ?? 0) * 100)
+            : 0;
+        }
+        return point;
+      });
     }
-    return point;
-  });
+    // Fallback: calculate from adstock_params (backward compat)
+    return Array.from({ length: 12 }, (_, week) => {
+      const point: Record<string, number | string> = { week: `W${week}` };
+      for (const ch of channel_results) {
+        const alpha = ch.adstock_params.alpha ?? 0.5;
+        point[ch.channel] = Math.round(Math.pow(alpha, week) * 100);
+      }
+      return point;
+    });
+  })();
 
   // Decomposition time series (downsample for readability)
   const tsLength = decomposition_ts.dates.length;
@@ -160,36 +175,70 @@ export default function ManagerView({ results }: ManagerViewProps) {
           </CardContent>
         </Card>
 
-        {/* Saturation */}
-        <Card>
+        {/* Response Curves (Saturation) */}
+        <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Channel Saturation</CardTitle>
+            <CardTitle>Response Curves</CardTitle>
             <CardDescription>
-              How close each channel is to diminishing returns
+              Spend vs predicted contribution — how each channel responds to budget changes
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {saturationData.map((d) => (
-                <div key={d.channel}>
-                  <div className="mb-1 flex items-center justify-between">
-                    <span className="text-sm text-gray-700">{d.channel}</span>
-                    <span className="text-sm font-medium text-gray-900">
-                      {d.saturation}%
-                    </span>
-                  </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-gray-200">
-                    <div
-                      className={`h-full rounded-full transition-all ${
-                        d.saturation >= 80
-                          ? "bg-red-500"
-                          : d.saturation >= 60
-                            ? "bg-amber-500"
-                            : "bg-emerald-500"
-                      }`}
-                      style={{ width: `${d.saturation}%` }}
-                    />
-                  </div>
+            <div className="h-80">
+              <Plot
+                data={[
+                  ...channel_results.map((ch, i) => {
+                    const curve = results.response_curves?.[ch.channel];
+                    if (!curve) return null;
+                    return {
+                      x: curve.spend_levels,
+                      y: curve.predicted_contribution,
+                      type: 'scatter' as const,
+                      mode: 'lines' as const,
+                      name: ch.channel,
+                      line: { color: ["#4c6ef5", "#f59f00", "#40c057", "#e64980"][i % 4], width: 2.5 },
+                    };
+                  }).filter(Boolean),
+                  ...channel_results.map((ch, i) => {
+                    const curve = results.response_curves?.[ch.channel];
+                    if (!curve) return null;
+                    return {
+                      x: [curve.current_spend],
+                      y: [curve.current_contribution],
+                      type: 'scatter' as const,
+                      mode: 'markers' as const,
+                      name: `${ch.channel} (current)`,
+                      marker: { color: ["#4c6ef5", "#f59f00", "#40c057", "#e64980"][i % 4], size: 10, symbol: 'circle' },
+                      showlegend: false,
+                    };
+                  }).filter(Boolean),
+                ] as any[]}
+                layout={{
+                  autosize: true,
+                  margin: { l: 60, r: 20, t: 10, b: 50 },
+                  xaxis: { title: 'Weekly Spend ($)', tickprefix: '$', tickformat: ',.0f' },
+                  yaxis: { title: 'Predicted Contribution ($)', tickprefix: '$', tickformat: ',.0f' },
+                  legend: { orientation: 'h', y: -0.15 },
+                  plot_bgcolor: 'white',
+                  paper_bgcolor: 'white',
+                  font: { family: 'Inter, system-ui, sans-serif', size: 12 },
+                }}
+                config={{ displayModeBar: false, responsive: true }}
+                useResizeHandler
+                style={{ width: '100%', height: '100%' }}
+              />
+            </div>
+            {/* Saturation indicators below chart */}
+            <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              {channel_results.map((ch) => (
+                <div key={ch.channel} className="rounded-lg border border-gray-100 p-3 text-center">
+                  <p className="text-xs text-gray-500">{ch.channel}</p>
+                  <p className={`text-lg font-bold ${
+                    ch.saturation_pct >= 0.8 ? "text-red-600" :
+                    ch.saturation_pct >= 0.6 ? "text-amber-600" : "text-emerald-600"
+                  }`}>
+                    {Math.round(ch.saturation_pct * 100)}% saturated
+                  </p>
                 </div>
               ))}
             </div>
@@ -281,6 +330,17 @@ export default function ManagerView({ results }: ManagerViewProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Budget Optimizer */}
+      {results.response_curves && Object.keys(results.response_curves).length > 0 && (
+        <BudgetOptimizer
+          runId={runId}
+          channelNames={channel_results.map(ch => ch.channel)}
+          currentSpend={Object.fromEntries(
+            channel_results.map(ch => [ch.channel, results.response_curves[ch.channel]?.current_spend ?? 0])
+          )}
+        />
+      )}
     </div>
   );
 }

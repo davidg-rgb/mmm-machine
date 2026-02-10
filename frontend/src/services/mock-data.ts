@@ -199,6 +199,50 @@ export const mockResults: ModelResults = {
     "Your marketing mix model explains 94% of revenue variation (R-squared = 0.94). Google Ads drives the largest share at 32% of incremental revenue, while Email delivers the highest return at $8.50 per dollar spent. TV advertising shows the longest carryover effect at 4.5 weeks, suggesting sustained brand building. Facebook Ads has the most room for growth at only 58% saturation.",
   top_recommendation:
     "Increase Facebook Ads budget by 15-20% to capture unsaturated demand, while maintaining Email at current levels to preserve its exceptional ROAS.",
+  response_curves: {
+    "Google Ads": {
+      spend_levels: [0, 5000, 10000, 15000, 20000, 25000, 30000, 35000, 40000],
+      predicted_contribution: [0, 18000, 32000, 42000, 48000, 52000, 54500, 56000, 57000],
+      current_spend: 20000,
+      current_contribution: 48000,
+    },
+    "Facebook Ads": {
+      spend_levels: [0, 3000, 6000, 9000, 12000, 15000, 18000, 21000, 24000],
+      predicted_contribution: [0, 12000, 22000, 30000, 36000, 40000, 43000, 45000, 46500],
+      current_spend: 12000,
+      current_contribution: 36000,
+    },
+    TV: {
+      spend_levels: [0, 5000, 10000, 15000, 20000, 25000, 30000, 35000, 40000],
+      predicted_contribution: [0, 10000, 18000, 24000, 28500, 31500, 33500, 35000, 36000],
+      current_spend: 15000,
+      current_contribution: 24000,
+    },
+    Email: {
+      spend_levels: [0, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000],
+      predicted_contribution: [0, 8500, 15000, 20000, 23500, 26000, 27800, 29000, 29800],
+      current_spend: 3500,
+      current_contribution: 29600,
+    },
+  },
+  adstock_decay_curves: {
+    "Google Ads": {
+      weeks: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      decay_weights: [1.0, 0.7, 0.49, 0.34, 0.24, 0.17, 0.12, 0.08, 0.06, 0.04, 0.03, 0.02],
+    },
+    "Facebook Ads": {
+      weeks: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      decay_weights: [1.0, 0.5, 0.25, 0.13, 0.06, 0.03, 0.02, 0.01, 0.0, 0.0, 0.0, 0.0],
+    },
+    TV: {
+      weeks: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      decay_weights: [1.0, 0.85, 0.72, 0.61, 0.52, 0.44, 0.38, 0.32, 0.27, 0.23, 0.2, 0.17],
+    },
+    Email: {
+      weeks: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      decay_weights: [1.0, 0.3, 0.09, 0.03, 0.01, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    },
+  },
 };
 
 // ---- Mock Model Runs ----

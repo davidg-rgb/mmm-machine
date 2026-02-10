@@ -148,7 +148,7 @@ export default function Results() {
 
       {/* View Content */}
       {view === "executive" && <ExecutiveView results={results} />}
-      {view === "manager" && <ManagerView results={results} />}
+      {view === "manager" && <ManagerView results={results} runId={runId!} />}
       {view === "analyst" && <AnalystView results={results} />}
     </div>
   );

@@ -124,6 +124,8 @@ export interface ModelResults {
   };
   summary_text: string;
   top_recommendation: string;
+  response_curves: Record<string, ResponseCurve>;
+  adstock_decay_curves: Record<string, AdstockDecayCurve>;
 }
 
 export interface ChannelResult {
@@ -146,6 +148,18 @@ export interface ChannelResult {
   };
   saturation_pct: number;
   recommendation: string;
+}
+
+export interface ResponseCurve {
+  spend_levels: number[];
+  predicted_contribution: number[];
+  current_spend: number;
+  current_contribution: number;
+}
+
+export interface AdstockDecayCurve {
+  weeks: number[];
+  decay_weights: number[];
 }
 
 export interface ProgressEvent {
