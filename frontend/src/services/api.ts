@@ -1,8 +1,6 @@
 import axios from "axios";
 import { useAuthStore } from "../store/auth";
 
-const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === "true";
-
 const api = axios.create({
   baseURL: "/api",
   headers: { "Content-Type": "application/json" },
