@@ -45,7 +45,7 @@ function StatsCards({ runs, datasets }: { runs: ModelRun[]; datasets: Dataset[] 
   const completedRuns = runs.filter((r) => r.status === "completed");
 
   const bestRoas = completedRuns.reduce<number | null>((best, run) => {
-    if (!run.results) return best;
+    if (!run.results || run.results.channel_results.length === 0) return best;
     const maxRoas = Math.max(...run.results.channel_results.map((c) => c.roas.mean));
     return best === null ? maxRoas : Math.max(best, maxRoas);
   }, null);

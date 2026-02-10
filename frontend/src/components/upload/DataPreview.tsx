@@ -1,6 +1,6 @@
 interface DataPreviewProps {
   headers: string[];
-  rows: string[][];
+  rows: Record<string, string | number>[];
 }
 
 export default function DataPreview({ headers, rows }: DataPreviewProps) {
@@ -29,12 +29,12 @@ export default function DataPreview({ headers, rows }: DataPreviewProps) {
                 <td className="whitespace-nowrap px-3 py-1.5 text-xs text-gray-400">
                   {i + 1}
                 </td>
-                {row.map((cell, j) => (
+                {headers.map((header) => (
                   <td
-                    key={j}
+                    key={header}
                     className="whitespace-nowrap px-3 py-1.5 text-xs text-gray-700"
                   >
-                    {cell}
+                    {row[header]}
                   </td>
                 ))}
               </tr>

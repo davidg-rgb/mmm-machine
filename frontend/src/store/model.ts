@@ -4,7 +4,7 @@ interface ModelConfig {
   adstock_type: "geometric" | "weibull";
   saturation_type: "logistic" | "hill";
   mode: "quick" | "full";
-  yearly_seasonality: boolean;
+  yearly_seasonality: number;
 }
 
 interface ModelState {
@@ -19,7 +19,7 @@ const defaultConfig: ModelConfig = {
   adstock_type: "geometric",
   saturation_type: "logistic",
   mode: "quick",
-  yearly_seasonality: true,
+  yearly_seasonality: 2,
 };
 
 export const useModelStore = create<ModelState>()((set) => ({

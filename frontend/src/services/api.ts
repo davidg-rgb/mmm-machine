@@ -145,7 +145,7 @@ interface UploadResponse {
   filename: string;
   row_count: number;
   columns: Array<{ name: string; dtype: string; null_count: number; sample_values: string[] }>;
-  preview_rows: string[][];
+  preview_rows: Record<string, string | number>[];
   auto_mapping: ColumnMapping | null;
 }
 
@@ -244,6 +244,13 @@ export function subscribeToProgress(
   es.addEventListener("progress", (e) => {
     onEvent(JSON.parse(e.data));
   });
+  es.onerror = () => {
+    // EventSource fires onerror on connection loss; it auto-reconnects
+    // Only report if the connection is permanently closed
+    if (es.readyState === EventSource.CLOSED) {
+      onEvent({ status: "failed", progress: 0, message: "Connection lost", stage: "error" });
+    }
+  };
   return es;
 }
 

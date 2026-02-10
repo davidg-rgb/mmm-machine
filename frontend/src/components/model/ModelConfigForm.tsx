@@ -216,19 +216,19 @@ export default function ModelConfigForm({
             </div>
             <button
               onClick={() =>
-                setConfig({ yearly_seasonality: !config.yearly_seasonality })
+                setConfig({ yearly_seasonality: config.yearly_seasonality > 0 ? 0 : 2 })
               }
               className={cn(
                 "relative h-6 w-11 rounded-full transition-colors",
-                config.yearly_seasonality ? "bg-brand-600" : "bg-gray-300",
+                config.yearly_seasonality > 0 ? "bg-brand-600" : "bg-gray-300",
               )}
               aria-label="Toggle yearly seasonality"
-              aria-pressed={config.yearly_seasonality}
+              aria-pressed={config.yearly_seasonality > 0}
             >
               <span
                 className={cn(
                   "absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
-                  config.yearly_seasonality && "translate-x-5",
+                  config.yearly_seasonality > 0 && "translate-x-5",
                 )}
               />
             </button>

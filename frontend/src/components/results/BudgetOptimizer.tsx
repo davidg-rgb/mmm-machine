@@ -95,7 +95,7 @@ export default function BudgetOptimizer({ runId, channelNames, currentSpend }: B
               <p className={`text-3xl font-bold ${
                 result.improvement_pct > 0 ? "text-emerald-700" : "text-gray-700"
               }`}>
-                +{result.improvement_pct.toFixed(1)}%
+                {result.improvement_pct >= 0 ? '+' : ''}{result.improvement_pct.toFixed(1)}%
               </p>
               <p className="text-xs text-gray-500">
                 {formatCurrency(result.total_current_contribution)} → {formatCurrency(result.total_predicted_contribution)}

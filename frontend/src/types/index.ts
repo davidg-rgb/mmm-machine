@@ -95,7 +95,7 @@ export interface ModelRunConfig {
   n_samples: number;
   n_chains: number;
   target_accept: number;
-  yearly_seasonality: boolean;
+  yearly_seasonality: number;
   mode: "quick" | "full";
 }
 

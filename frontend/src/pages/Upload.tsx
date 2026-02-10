@@ -29,7 +29,7 @@ export default function Upload() {
   const [step, setStep] = useState<WizardStep>(1);
   const [datasetId, setDatasetId] = useState<string | null>(null);
   const [headers, setHeaders] = useState<string[]>([]);
-  const [previewRows, setPreviewRows] = useState<string[][]>([]);
+  const [previewRows, setPreviewRows] = useState<Record<string, string | number>[]>([]);
   const [validationReport, setValidationReport] = useState<ValidationReport | null>(null);
   const navigate = useNavigate();
   const datasetStore = useDatasetStore();

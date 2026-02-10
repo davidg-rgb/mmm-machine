@@ -138,9 +138,9 @@ export default function ValidationPanel({
             <AlertCircle className="h-4 w-4" />
             Errors
           </p>
-          {errors.map((item) => (
+          {errors.map((item, i) => (
             <div
-              key={item.code}
+              key={`${item.code}-${item.column ?? i}`}
               className="rounded-lg border border-red-100 bg-red-50/50 px-4 py-2.5 text-sm text-red-700"
             >
               {item.column && (
@@ -161,9 +161,9 @@ export default function ValidationPanel({
             <AlertTriangle className="h-4 w-4" />
             Warnings
           </p>
-          {warnings.map((item) => (
+          {warnings.map((item, i) => (
             <div
-              key={item.code}
+              key={`${item.code}-${item.column ?? i}`}
               className="rounded-lg border border-amber-100 bg-amber-50/50 px-4 py-2.5 text-sm text-amber-700"
             >
               {item.column && (
@@ -184,9 +184,9 @@ export default function ValidationPanel({
             <Lightbulb className="h-4 w-4" />
             Suggestions
           </p>
-          {suggestions.map((item) => (
+          {suggestions.map((item, i) => (
             <div
-              key={item.code}
+              key={`${item.code}-${item.column ?? i}`}
               className="rounded-lg border border-blue-100 bg-blue-50/50 px-4 py-2.5 text-sm text-blue-700"
             >
               {item.message}

@@ -129,7 +129,7 @@ export default function Compare() {
                           <p className="mt-1 text-xs text-gray-400">
                             R² {(run.results.diagnostics.r_squared * 100).toFixed(1)}%
                             {" · "}
-                            MAPE {run.results.diagnostics.mape.toFixed(1)}%
+                            MAPE {(run.results.diagnostics.mape * 100).toFixed(1)}%
                           </p>
                         )}
                       </div>
@@ -360,7 +360,7 @@ function ComparisonView({ runIds, runs, onBack }: ComparisonViewProps) {
                         : "text-gray-900"
                     )}
                   >
-                    {resultsA.diagnostics.mape.toFixed(1)}%
+                    {(resultsA.diagnostics.mape * 100).toFixed(1)}%
                   </td>
                   <td
                     className={cn(
@@ -370,7 +370,7 @@ function ComparisonView({ runIds, runs, onBack }: ComparisonViewProps) {
                         : "text-gray-900"
                     )}
                   >
-                    {resultsB.diagnostics.mape.toFixed(1)}%
+                    {(resultsB.diagnostics.mape * 100).toFixed(1)}%
                   </td>
                 </tr>
                 <tr>
