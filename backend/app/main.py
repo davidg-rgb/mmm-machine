@@ -87,6 +87,19 @@ app.include_router(results.router, prefix=settings.api_prefix)
 app.include_router(workspace.router, prefix=settings.api_prefix)
 
 
+@app.on_event("startup")
+async def startup_ensure_storage():
+    """Create the S3/MinIO bucket on startup in development mode."""
+    if settings.app_env == "development":
+        try:
+            from app.services.storage import StorageService
+
+            StorageService()  # constructor calls _ensure_bucket
+            logger.info("Storage bucket verified/created on startup")
+        except Exception:
+            logger.warning("Could not verify/create S3 bucket on startup - MinIO may not be ready")
+
+
 @app.get("/health")
 async def health():
     return {"status": "healthy", "version": "0.1.0"}

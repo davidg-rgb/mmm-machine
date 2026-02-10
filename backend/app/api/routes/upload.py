@@ -230,6 +230,41 @@ async def upload_dataset(
     )
 
 
+@router.get("/{dataset_id}/preview")
+async def preview_dataset(
+    dataset_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return headers and first 10 rows of a dataset CSV."""
+    dataset = await _get_dataset(dataset_id, current_user.workspace_id, db)
+
+    try:
+        storage = StorageService()
+        df = storage.download_csv(dataset.s3_key)
+    except Exception:
+        logger.exception("Failed to download dataset from S3 for preview")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Failed to load dataset from storage.",
+        )
+
+    headers = [str(c) for c in df.columns]
+    preview_df = df.head(PREVIEW_ROWS).fillna("")
+    rows = []
+    for _, row in preview_df.iterrows():
+        rows.append([
+            str(v.item()) if hasattr(v, "item") else str(v)
+            for v in row
+        ])
+
+    return {
+        "headers": headers,
+        "rows": rows,
+        "total_rows": len(df),
+    }
+
+
 @router.get("", response_model=list[DatasetResponse])
 async def list_datasets(
     current_user: User = Depends(get_current_user),

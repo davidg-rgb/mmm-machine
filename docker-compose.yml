@@ -48,7 +48,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: bash -c "cd /app && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     environment:
       - DATABASE_URL=postgresql+asyncpg://mixmodel:mixmodel_dev@postgres:5432/mixmodel
       - DATABASE_URL_SYNC=postgresql://mixmodel:mixmodel_dev@postgres:5432/mixmodel
