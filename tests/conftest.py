@@ -4,13 +4,11 @@ Uses SQLite in-memory for unit/API tests (no external DB required).
 """
 
 import os
-import asyncio
 from typing import AsyncGenerator
 
-import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
-from sqlalchemy import JSON
+from sqlalchemy import JSON, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
@@ -55,15 +53,7 @@ TestSessionLocal = async_sessionmaker(
 )
 
 
-@pytest.fixture(scope="session")
-def event_loop():
-    """Create a session-scoped event loop for async tests."""
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
-
-
-@pytest_asyncio.fixture(scope="session", autouse=True)
+@pytest_asyncio.fixture(scope="session", autouse=True, loop_scope="session")
 async def setup_database():
     """Create all tables once per test session."""
     async with TEST_ENGINE.begin() as conn:
@@ -75,10 +65,15 @@ async def setup_database():
 
 @pytest_asyncio.fixture
 async def db_session() -> AsyncGenerator[AsyncSession, None]:
-    """Provide a transactional database session that rolls back after each test."""
+    """Provide a database session that cleans up after each test."""
     async with TestSessionLocal() as session:
         yield session
+        # Roll back any uncommitted changes
         await session.rollback()
+        # Clean up all tables for isolation between tests
+        for table in reversed(Base.metadata.sorted_tables):
+            await session.execute(text(f"DELETE FROM {table.name}"))
+        await session.commit()
 
 
 @pytest_asyncio.fixture

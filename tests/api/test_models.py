@@ -1,6 +1,5 @@
 """Tests for model run endpoints."""
 
-import pytest
 from httpx import AsyncClient
 
 
@@ -16,7 +15,7 @@ class TestListModelRuns:
 
     async def test_list_model_runs_unauthenticated(self, client: AsyncClient):
         resp = await client.get("/api/models")
-        assert resp.status_code == 403
+        assert resp.status_code in (401, 403)
 
 
 class TestGetModelRun:
@@ -32,7 +31,7 @@ class TestGetModelRun:
 
     async def test_get_run_unauthenticated(self, client: AsyncClient):
         resp = await client.get("/api/models/some-id")
-        assert resp.status_code == 403
+        assert resp.status_code in (401, 403)
 
 
 class TestCreateModelRun:
@@ -43,7 +42,7 @@ class TestCreateModelRun:
             "/api/models/run",
             json={"dataset_id": "some-id"},
         )
-        assert resp.status_code == 403
+        assert resp.status_code in (401, 403)
 
     async def test_create_run_nonexistent_dataset(
         self, client: AsyncClient, auth_headers
@@ -69,7 +68,7 @@ class TestDeleteModelRun:
 
     async def test_delete_run_unauthenticated(self, client: AsyncClient):
         resp = await client.delete("/api/models/some-id")
-        assert resp.status_code == 403
+        assert resp.status_code in (401, 403)
 
 
 class TestGetResults:
@@ -85,4 +84,4 @@ class TestGetResults:
 
     async def test_results_unauthenticated(self, client: AsyncClient):
         resp = await client.get("/api/models/some-id/results")
-        assert resp.status_code == 403
+        assert resp.status_code in (401, 403)

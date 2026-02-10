@@ -108,6 +108,8 @@ class TestErrors:
 
     def test_invalid_dates(self, validator, valid_mapping):
         df = _make_df(104)
+        # Convert to object dtype first so we can inject a bad string
+        df["week_start"] = df["week_start"].astype(object)
         df.loc[0, "week_start"] = "not-a-date"
         result = validator.validate(df, valid_mapping)
         error_codes = [e["code"] for e in result["errors"]]

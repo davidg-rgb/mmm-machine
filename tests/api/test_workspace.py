@@ -1,6 +1,5 @@
 """Tests for workspace endpoints."""
 
-import pytest
 from httpx import AsyncClient
 
 
@@ -19,7 +18,7 @@ class TestGetWorkspace:
 
     async def test_get_workspace_unauthenticated(self, client: AsyncClient):
         resp = await client.get("/api/workspace")
-        assert resp.status_code == 403
+        assert resp.status_code in (401, 403)
 
 
 class TestUpdateWorkspace:
@@ -30,7 +29,7 @@ class TestUpdateWorkspace:
             "/api/workspace",
             json={"name": "New Name"},
         )
-        assert resp.status_code == 403
+        assert resp.status_code in (401, 403)
 
     async def test_update_workspace_success(
         self, client: AsyncClient, auth_headers

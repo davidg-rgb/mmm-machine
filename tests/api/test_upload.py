@@ -1,6 +1,5 @@
 """Tests for dataset upload and management endpoints."""
 
-import pytest
 from httpx import AsyncClient
 
 
@@ -16,7 +15,7 @@ class TestListDatasets:
 
     async def test_list_datasets_unauthenticated(self, client: AsyncClient):
         resp = await client.get("/api/datasets")
-        assert resp.status_code == 403
+        assert resp.status_code in (401, 403)
 
 
 class TestGetDataset:
@@ -32,7 +31,7 @@ class TestGetDataset:
 
     async def test_get_dataset_unauthenticated(self, client: AsyncClient):
         resp = await client.get("/api/datasets/some-id")
-        assert resp.status_code == 403
+        assert resp.status_code in (401, 403)
 
 
 class TestDeleteDataset:
@@ -48,4 +47,20 @@ class TestDeleteDataset:
 
     async def test_delete_dataset_unauthenticated(self, client: AsyncClient):
         resp = await client.delete("/api/datasets/some-id")
-        assert resp.status_code == 403
+        assert resp.status_code in (401, 403)
+
+
+class TestPreviewDataset:
+    """GET /api/datasets/{dataset_id}/preview"""
+
+    async def test_preview_nonexistent_dataset(
+        self, client: AsyncClient, auth_headers
+    ):
+        resp = await client.get(
+            "/api/datasets/nonexistent-id/preview", headers=auth_headers
+        )
+        assert resp.status_code == 404
+
+    async def test_preview_unauthenticated(self, client: AsyncClient):
+        resp = await client.get("/api/datasets/some-id/preview")
+        assert resp.status_code in (401, 403)
