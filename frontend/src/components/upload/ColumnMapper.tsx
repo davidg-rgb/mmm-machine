@@ -207,6 +207,8 @@ export default function ColumnMapper({
                                   : "bg-gray-200 text-gray-600"
                           : "text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                       }`}
+                      aria-label={`Set ${header} as ${role} column`}
+                      aria-pressed={assignment.role === role}
                     >
                       {roleIcons[role]}
                       {role}
@@ -223,6 +225,7 @@ export default function ColumnMapper({
                   onChange={(e) => setChannelName(header, e.target.value)}
                   placeholder="Channel name"
                   className="w-36 rounded-md border border-gray-200 px-2 py-1 text-xs text-gray-700 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  aria-label={`Channel name for ${header}`}
                 />
               )}
             </div>

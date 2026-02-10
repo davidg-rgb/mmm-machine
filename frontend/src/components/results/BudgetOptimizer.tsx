@@ -62,10 +62,11 @@ export default function BudgetOptimizer({ runId, channelNames, currentSpend }: B
       <CardContent>
         <div className="flex items-end gap-3">
           <div className="flex-1">
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label htmlFor="budget-input" className="mb-1 block text-sm font-medium text-gray-700">
               Total Weekly Budget
             </label>
             <input
+              id="budget-input"
               type="number"
               value={budget}
               onChange={(e) => setBudget(Number(e.target.value))}

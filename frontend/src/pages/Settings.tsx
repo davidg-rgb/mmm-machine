@@ -96,25 +96,25 @@ export default function Settings() {
         <CardContent>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <p className="block text-sm font-medium text-gray-700">
                 Full Name
-              </label>
+              </p>
               <p className="mt-1 text-sm text-gray-900">
                 {user?.full_name ?? "—"}
               </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <p className="block text-sm font-medium text-gray-700">
                 Email
-              </label>
+              </p>
               <p className="mt-1 text-sm text-gray-900">
                 {user?.email ?? "—"}
               </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <p className="block text-sm font-medium text-gray-700">
                 Role
-              </label>
+              </p>
               <Badge variant="brand">{user?.role ?? "—"}</Badge>
             </div>
           </div>

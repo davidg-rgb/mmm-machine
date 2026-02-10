@@ -70,6 +70,7 @@ export default function DataUploader({ onFileAccepted }: DataUploaderProps) {
               ? "border-brand-400 bg-brand-50"
               : "border-gray-300 bg-gray-50/50 hover:border-gray-400 hover:bg-gray-50",
           )}
+          aria-label="Upload data file - drag and drop or click to browse"
         >
           <input {...getInputProps()} />
           <div className="mb-4 rounded-xl bg-white p-3 shadow-sm">
@@ -102,6 +103,7 @@ export default function DataUploader({ onFileAccepted }: DataUploaderProps) {
             <button
               onClick={handleClear}
               className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              aria-label="Remove file"
             >
               <X className="h-4 w-4" />
             </button>

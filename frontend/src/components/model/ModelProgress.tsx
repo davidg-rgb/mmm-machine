@@ -53,7 +53,7 @@ export default function ModelProgress({
   return (
     <div className="space-y-5">
       {/* Progress bar */}
-      <div>
+      <div role="status" aria-live="polite">
         <div className="mb-2 flex items-center justify-between">
           <p className="text-sm font-medium text-gray-900">
             {isFailed ? "Run Failed" : message || "Processing..."}

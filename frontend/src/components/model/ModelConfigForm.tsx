@@ -36,10 +36,11 @@ export default function ModelConfigForm({
     <div className="space-y-5">
       {/* Run Name */}
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-gray-700">
+        <label htmlFor="run-name" className="mb-1.5 block text-sm font-medium text-gray-700">
           Run Name
         </label>
         <input
+          id="run-name"
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -50,9 +51,9 @@ export default function ModelConfigForm({
 
       {/* Mode Toggle */}
       <div>
-        <label className="mb-2 block text-sm font-medium text-gray-700">
+        <p className="mb-2 block text-sm font-medium text-gray-700">
           Run Mode
-        </label>
+        </p>
         <div className="grid grid-cols-2 gap-3">
           <button
             onClick={() => setConfig({ mode: "quick" })}
@@ -62,6 +63,8 @@ export default function ModelConfigForm({
                 ? "border-brand-500 bg-brand-50"
                 : "border-gray-200 hover:border-gray-300",
             )}
+            aria-label="Select quick mode - 3 minutes, 500 samples"
+            aria-pressed={config.mode === "quick"}
           >
             <div
               className={cn(
@@ -89,6 +92,8 @@ export default function ModelConfigForm({
                 ? "border-brand-500 bg-brand-50"
                 : "border-gray-200 hover:border-gray-300",
             )}
+            aria-label="Select full mode - 12 minutes, 2000 samples"
+            aria-pressed={config.mode === "full"}
           >
             <div
               className={cn(
@@ -130,6 +135,8 @@ export default function ModelConfigForm({
                     ? "bg-brand-600 text-white"
                     : "text-gray-500 hover:text-gray-700",
                 )}
+                aria-label="Select geometric adstock type"
+                aria-pressed={config.adstock_type === "geometric"}
               >
                 Geometric
               </button>
@@ -141,6 +148,8 @@ export default function ModelConfigForm({
                     ? "bg-brand-600 text-white"
                     : "text-gray-500 hover:text-gray-700",
                 )}
+                aria-label="Select weibull adstock type"
+                aria-pressed={config.adstock_type === "weibull"}
               >
                 Weibull
               </button>
@@ -170,6 +179,8 @@ export default function ModelConfigForm({
                     ? "bg-brand-600 text-white"
                     : "text-gray-500 hover:text-gray-700",
                 )}
+                aria-label="Select logistic saturation type"
+                aria-pressed={config.saturation_type === "logistic"}
               >
                 Logistic
               </button>
@@ -181,6 +192,8 @@ export default function ModelConfigForm({
                     ? "bg-brand-600 text-white"
                     : "text-gray-500 hover:text-gray-700",
                 )}
+                aria-label="Select hill saturation type"
+                aria-pressed={config.saturation_type === "hill"}
               >
                 Hill
               </button>
@@ -209,6 +222,8 @@ export default function ModelConfigForm({
                 "relative h-6 w-11 rounded-full transition-colors",
                 config.yearly_seasonality ? "bg-brand-600" : "bg-gray-300",
               )}
+              aria-label="Toggle yearly seasonality"
+              aria-pressed={config.yearly_seasonality}
             >
               <span
                 className={cn(
