@@ -46,7 +46,7 @@ slowapi==0.1.9
 
 # Observability
 sentry-sdk[fastapi]==2.19.2
-python-json-logger==3.2.1
+python-json-logger==4.0.0
 
 # Dev/Test
 pytest==8.3.4
