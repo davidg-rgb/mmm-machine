@@ -34,7 +34,7 @@ openpyxl==3.1.5
 scipy>=1.11.0
 
 # MMM Engine
-pymc-marketing==0.10.0
+pymc-marketing==0.18.0
 pymc==5.19.1
 arviz==0.20.0
 
