@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/auth";
 import { register, getMe } from "@/services/api";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { BarChart3, Eye, EyeOff, Check, X } from "lucide-react";
 import { Button } from "@/components/shared";
 
@@ -18,6 +19,7 @@ const passwordRules = [
 ];
 
 export default function Register() {
+  usePageTitle("Create Account");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

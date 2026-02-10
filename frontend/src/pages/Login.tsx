@@ -2,10 +2,12 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/auth";
 import { login, getMe } from "@/services/api";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { BarChart3, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/shared";
 
 export default function Login() {
+  usePageTitle("Sign In");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Calendar,
   Target,
@@ -74,9 +74,7 @@ export default function ColumnMapper({
   onMappingComplete,
   onBack,
 }: ColumnMapperProps) {
-  const [assignments, setAssignments] = useState<Record<string, ColumnAssignment>>({});
-
-  useEffect(() => {
+  const [assignments, setAssignments] = useState<Record<string, ColumnAssignment>>(() => {
     const initial: Record<string, ColumnAssignment> = {};
     for (const h of headers) {
       const role = autoDetectRole(h);
@@ -85,8 +83,8 @@ export default function ColumnMapper({
         channelName: role === "media" ? autoChannelName(h) : "",
       };
     }
-    setAssignments(initial);
-  }, [headers]);
+    return initial;
+  });
 
   function setRole(header: string, role: ColumnRole) {
     setAssignments((prev) => ({

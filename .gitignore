@@ -41,6 +41,8 @@ docker-compose.override.yml
 htmlcov/
 .pytest_cache/
 coverage/
+playwright-report/
+test-results/
 
 # Model artifacts
 *.pkl

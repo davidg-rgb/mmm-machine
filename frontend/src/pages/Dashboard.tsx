@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useAuthStore } from "@/store/auth";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import {
   Upload,
   FlaskConical,
@@ -124,6 +125,7 @@ function StatsCards({ runs, datasets }: { runs: ModelRun[]; datasets: Dataset[] 
 }
 
 export default function Dashboard() {
+  usePageTitle("Dashboard");
   const user = useAuthStore((s) => s.user);
   const { data: modelRuns, isLoading: runsLoading } = useModelRuns();
   const { data: datasets, isLoading: datasetsLoading } = useDatasets();

@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
@@ -45,11 +46,13 @@ function StatusIcon({ status }: { status: string }) {
 }
 
 export default function ModelRun() {
+  usePageTitle("Model Runs");
   const queryClient = useQueryClient();
   const [showConfig, setShowConfig] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [message, setMessage] = useState("");
+  const [sseProgress, setSseProgress] = useState<number | null>(null);
+  const [sseMessage, setSseMessage] = useState<string | null>(null);
   const [etaSeconds, setEtaSeconds] = useState<number | undefined>(undefined);
+  const prevRunIdRef = useRef<string | undefined>(undefined);
 
   const { data: modelRuns, isLoading: runsLoading } = useModelRuns();
   const { data: datasets } = useDatasets();
@@ -63,24 +66,39 @@ export default function ModelRun() {
     (d: { status: string }) => d.status === "validated",
   );
 
+  const activeRunId = activeRun?.id;
+  const activeRunStatus = activeRun?.status;
+  const activeRunProgress = activeRun?.progress ?? 0;
+
+  // Reset SSE state when the active run changes
+  if (prevRunIdRef.current !== activeRunId) {
+    prevRunIdRef.current = activeRunId;
+    setSseProgress(null);
+    setSseMessage(null);
+    setEtaSeconds(undefined);
+  }
+
+  // Derive progress/message from SSE state or fallback to activeRun data
+  const progress = sseProgress ?? activeRunProgress;
+  const message = sseMessage ??
+    (activeRunStatus
+      ? `${activeRunStatus.charAt(0).toUpperCase()}${activeRunStatus.slice(1)}...`
+      : "");
+
   // SSE progress subscription for active runs
   useEffect(() => {
     if (
-      !activeRun ||
-      !["fitting", "preprocessing", "postprocessing"].includes(activeRun.status)
+      !activeRunId ||
+      !activeRunStatus ||
+      !["fitting", "preprocessing", "postprocessing"].includes(activeRunStatus)
     ) {
       return;
     }
 
-    setProgress(activeRun.progress);
-    setMessage(
-      `${activeRun.status.charAt(0).toUpperCase()}${activeRun.status.slice(1)}...`,
-    );
-
-    const es = subscribeToProgress(activeRun.id, (event: unknown) => {
+    const es = subscribeToProgress(activeRunId, (event: unknown) => {
       const evt = event as ProgressEvent;
-      setProgress(evt.progress);
-      setMessage(evt.message);
+      setSseProgress(evt.progress);
+      setSseMessage(evt.message);
       if (evt.eta_seconds != null) {
         setEtaSeconds(evt.eta_seconds);
       }
@@ -91,7 +109,7 @@ export default function ModelRun() {
     });
 
     return () => es.close();
-  }, [activeRun?.id, activeRun?.status, queryClient]);
+  }, [activeRunId, activeRunStatus, queryClient]);
 
   function handleStartRun(config: ModelRunConfig) {
     setShowConfig(false);

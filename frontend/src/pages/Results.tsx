@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import {
   Briefcase,
   BarChart3,
@@ -29,6 +30,8 @@ export default function Results() {
 
   const { data: run, isLoading: runLoading, error: runError } = useModelRun(runId ?? "");
   const { data: results, isLoading: resultsLoading, error: resultsError } = useModelResults(runId ?? "");
+
+  usePageTitle(run?.name ? `Results: ${run.name}` : "Results");
 
   function handleExport() {
     if (!results || !run) return;

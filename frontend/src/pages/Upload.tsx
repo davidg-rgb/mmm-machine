@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle, Spinner } from "@/components/shared";
@@ -24,6 +25,7 @@ const stepLabels: Record<WizardStep, string> = {
 };
 
 export default function Upload() {
+  usePageTitle("Upload Data");
   const [step, setStep] = useState<WizardStep>(1);
   const [datasetId, setDatasetId] = useState<string | null>(null);
   const [headers, setHeaders] = useState<string[]>([]);
