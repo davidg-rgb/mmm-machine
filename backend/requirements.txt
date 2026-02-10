@@ -1,0 +1,45 @@
+# Core
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+pydantic-settings==2.7.1
+python-multipart==0.0.20
+
+# Database
+sqlalchemy[asyncio]==2.0.36
+asyncpg==0.30.0
+psycopg2-binary==2.9.10
+alembic==1.14.1
+greenlet==3.1.1
+
+# Auth
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.2.1
+
+# Task queue
+celery[redis]==5.4.0
+redis==5.2.1
+
+# Storage
+boto3==1.36.2
+python-dotenv==1.0.1
+
+# Data processing
+pandas==2.2.3
+numpy==1.26.4
+openpyxl==3.1.5
+
+# MMM Engine
+pymc-marketing==0.10.0
+pymc==5.19.1
+arviz==0.20.0
+
+# SSE
+sse-starlette==2.2.1
+
+# Dev/Test
+pytest==8.3.4
+pytest-asyncio==0.24.0
+httpx==0.28.1
+ruff==0.8.6
