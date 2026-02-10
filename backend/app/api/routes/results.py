@@ -2,12 +2,11 @@ import asyncio
 import json
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, HTTPException, Query, Request
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette.sse import EventSourceResponse
 
-from app.core.database import get_db
+from app.core.database import async_session
 from app.core.security import decode_token
 from app.models.model_run import ModelRun
 from app.models.user import User
@@ -26,7 +25,6 @@ async def stream_progress(
     run_id: str,
     request: Request,
     token: str = Query(..., description="JWT access token"),
-    db: AsyncSession = Depends(get_db),
 ):
     """SSE endpoint for real-time model fitting progress."""
     # Verify token manually (EventSource can't send Authorization header)
@@ -36,31 +34,38 @@ async def stream_progress(
     if not user_id or token_type != "access":
         raise HTTPException(status_code=401, detail="Invalid token")
 
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=401, detail="User not found")
+    # Create a manual session for validation queries only
+    async with async_session() as db:
+        result = await db.execute(select(User).where(User.id == user_id))
+        user = result.scalar_one_or_none()
+        if not user:
+            raise HTTPException(status_code=401, detail="User not found")
 
-    result = await db.execute(
-        select(ModelRun).where(
-            ModelRun.id == run_id,
-            ModelRun.workspace_id == user.workspace_id,
+        result = await db.execute(
+            select(ModelRun).where(
+                ModelRun.id == run_id,
+                ModelRun.workspace_id == user.workspace_id,
+            )
         )
-    )
-    model_run = result.scalar_one_or_none()
-    if not model_run:
-        raise HTTPException(status_code=404, detail="Model run not found")
+        model_run = result.scalar_one_or_none()
+        if not model_run:
+            raise HTTPException(status_code=404, detail="Model run not found")
+
+        # Store model_run status for use outside the session
+        model_run_status = model_run.status
+        model_run_progress = model_run.progress
+    # Session is closed here, before the SSE stream starts
 
     # If already completed or failed, send final status and close
-    if model_run.status in ("completed", "failed"):
+    if model_run_status in ("completed", "failed"):
         async def single_event():
             yield {
                 "event": "progress",
                 "data": json.dumps({
-                    "status": model_run.status,
-                    "progress": model_run.progress,
-                    "message": f"Model run {model_run.status}",
-                    "stage": model_run.status,
+                    "status": model_run_status,
+                    "progress": model_run_progress,
+                    "message": f"Model run {model_run_status}",
+                    "stage": model_run_status,
                 }),
             }
         return EventSourceResponse(single_event())

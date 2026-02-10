@@ -36,6 +36,7 @@ class PyMCMMMEngine(BaseMMM):
         self.trace = None
         self._prepared_data: PreparedData | None = None
         self._spend_data: dict[str, np.ndarray] | None = None
+        self._channel_contributions = None
 
     def prepare_data(self, df: pd.DataFrame, mapping: dict) -> PreparedData:
         date_col = mapping["date_column"]
@@ -146,6 +147,7 @@ class PyMCMMMEngine(BaseMMM):
 
         # ---- Channel contributions ----
         contributions_data = self.model.compute_channel_contribution_original_scale()
+        self._channel_contributions = contributions_data  # Cache for reuse
         channel_contributions = []
         total_contribution = 0.0
         channel_mean_contributions = {}
@@ -397,7 +399,8 @@ class PyMCMMMEngine(BaseMMM):
     def _estimate_saturation_pct(self, channel: str, ch_idx: int) -> float:
         """Estimate how saturated a channel is at its current average spend."""
         try:
-            contributions = self.model.compute_channel_contribution_original_scale()
+            # Use cached channel contributions
+            contributions = self._channel_contributions if self._channel_contributions is not None else self.model.compute_channel_contribution_original_scale()
             ch_contribs_mean = contributions[:, :, ch_idx].mean(axis=0)
 
             # Compare mean contribution to max contribution across observed range
@@ -514,8 +517,9 @@ class PyMCMMMEngine(BaseMMM):
     def _predict_contribution_at_spend(self, channel: str, ch_idx: int, spend_level: float) -> float:
         """Predict mean contribution for a channel at a given spend level."""
         try:
-            # Get mean channel contribution at current spend levels
-            contributions = self.model.compute_channel_contribution_original_scale()
+            # Use cached channel contributions if available
+            # Note: This is a rough approximation since we're not re-running the model
+            contributions = self._channel_contributions if self._channel_contributions is not None else self.model.compute_channel_contribution_original_scale()
             mean_contribs = contributions[:, :, ch_idx].mean(axis=0).flatten()
 
             spend = self._spend_data[channel]

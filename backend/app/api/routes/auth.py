@@ -51,6 +51,7 @@ async def register(request: Request, body: RegisterRequest, db: AsyncSession = D
     )
     db.add(user)
     await db.flush()
+    await db.commit()
 
     access_token = create_access_token(user.id, {"workspace_id": workspace.id})
     refresh_token = create_refresh_token(user.id)
@@ -131,5 +132,5 @@ async def me(current_user: User = Depends(get_current_user)):
         full_name=current_user.full_name,
         role=current_user.role,
         workspace_id=current_user.workspace_id,
-        created_at=current_user.created_at.isoformat(),
+        created_at=current_user.created_at.isoformat() if current_user.created_at else "",
     )

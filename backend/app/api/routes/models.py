@@ -59,6 +59,7 @@ async def create_model_run(
     )
     db.add(model_run)
     await db.flush()
+    await db.commit()
 
     # Dispatch Celery task
     from app.tasks.model_tasks import run_mmm_model

@@ -200,6 +200,7 @@ async def health():
         import redis as redis_lib
         r = redis_lib.from_url(settings.redis_url, decode_responses=True)
         r.ping()
+        r.close()
         checks["redis"] = "healthy"
     except Exception as e:
         logger.warning(f"Health check redis failed: {e}")

@@ -274,7 +274,7 @@ async def upload_dataset(
         row_count=len(df),
         date_range_start=date_start,
         date_range_end=date_end,
-        column_mapping=auto_mapping_dict if auto_mapping else None,
+        column_mapping=auto_mapping.model_dump() if auto_mapping else None,
         status="uploaded",
     )
     db.add(dataset)
