@@ -31,6 +31,7 @@ export default function ValidationPanel({
     <div className="space-y-5">
       {/* Overall status */}
       <div
+        data-testid="validation-status"
         className={`flex items-center gap-3 rounded-lg p-4 ${
           hasErrors
             ? "border border-red-200 bg-red-50"
@@ -200,7 +201,7 @@ export default function ValidationPanel({
         <Button variant="ghost" onClick={onBack}>
           Back to Column Mapping
         </Button>
-        <Button onClick={onProceed} disabled={hasErrors}>
+        <Button onClick={onProceed} disabled={hasErrors} data-testid="proceed-to-model">
           {hasErrors ? "Fix Issues First" : "Proceed to Model Config"}
         </Button>
       </div>

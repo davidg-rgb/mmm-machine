@@ -62,9 +62,9 @@ export default function Login() {
         </div>
 
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" data-testid="login-form">
             {error && (
-              <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700" data-testid="login-error">
                 {error}
               </div>
             )}

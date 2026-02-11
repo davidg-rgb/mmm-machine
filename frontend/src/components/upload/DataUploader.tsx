@@ -64,6 +64,7 @@ export default function DataUploader({ onFileAccepted }: DataUploaderProps) {
       {!file ? (
         <div
           {...getRootProps()}
+          data-testid="upload-dropzone"
           className={cn(
             "flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-12 text-center transition-colors",
             isDragActive
@@ -87,7 +88,7 @@ export default function DataUploader({ onFileAccepted }: DataUploaderProps) {
           </Button>
         </div>
       ) : (
-        <div className="rounded-xl border border-gray-200 bg-white p-4">
+        <div className="rounded-xl border border-gray-200 bg-white p-4" data-testid="file-preview">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-brand-50 p-2.5">
               <FileSpreadsheet className="h-6 w-6 text-brand-600" />
@@ -109,7 +110,7 @@ export default function DataUploader({ onFileAccepted }: DataUploaderProps) {
             </button>
           </div>
           <div className="mt-4 flex justify-end">
-            <Button onClick={handleContinue}>
+            <Button onClick={handleContinue} data-testid="upload-continue">
               Continue to Column Mapping
             </Button>
           </div>

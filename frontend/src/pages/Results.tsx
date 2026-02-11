@@ -179,6 +179,7 @@ export default function Results() {
             variant="outline"
             size="sm"
             onClick={() => setExportOpen(!exportOpen)}
+            data-testid="export-btn"
           >
             <Download className="h-4 w-4 mr-2" />
             Export
@@ -190,7 +191,7 @@ export default function Results() {
                 className="fixed inset-0 z-10"
                 onClick={() => setExportOpen(false)}
               />
-              <div className="absolute right-0 mt-1 w-64 rounded-lg border border-gray-200 bg-white shadow-lg z-20">
+              <div className="absolute right-0 mt-1 w-64 rounded-lg border border-gray-200 bg-white shadow-lg z-20" data-testid="export-dropdown">
                 <button
                   onClick={handleExportChannelCSV}
                   className="flex w-full items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors first:rounded-t-lg"
@@ -242,6 +243,7 @@ export default function Results() {
         {viewTabs.map((tab) => (
           <button
             key={tab.key}
+            data-testid={`tab-${tab.key}`}
             onClick={() => setView(tab.key)}
             className={cn(
               "flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors",

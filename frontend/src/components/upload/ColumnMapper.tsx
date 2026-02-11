@@ -181,6 +181,7 @@ export default function ColumnMapper({
           return (
             <div
               key={header}
+              data-testid={`column-row-${header}`}
               className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3"
             >
               <code className="min-w-0 flex-1 truncate text-sm font-mono text-gray-700">
@@ -238,7 +239,7 @@ export default function ColumnMapper({
         <Button variant="ghost" onClick={onBack}>
           Back
         </Button>
-        <Button onClick={handleSubmit} disabled={!canProceed()}>
+        <Button onClick={handleSubmit} disabled={!canProceed()} data-testid="validate-data-btn">
           Validate Data
         </Button>
       </div>

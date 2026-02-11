@@ -1,0 +1,95 @@
+{
+  "diagnostics": {
+    "r_squared": 0.92,
+    "mape": 0.078,
+    "r_hat_max": 1.01,
+    "ess_min": 450,
+    "divergences": 0,
+    "convergence_status": "good"
+  },
+  "base_sales": {
+    "weekly_mean": 8500,
+    "share_of_total": 0.55
+  },
+  "channel_results": [
+    {
+      "channel": "Google",
+      "contribution_share": 0.22,
+      "weekly_contribution_mean": 3400,
+      "roas": { "mean": 2.85, "median": 2.78, "hdi_3": 2.10, "hdi_97": 3.65 },
+      "adstock_params": { "type": "geometric", "alpha": 0.65, "mean_lag_weeks": 1.9 },
+      "saturation_params": { "type": "logistic", "lam": 2.5, "k": 0.8 },
+      "saturation_pct": 0.62,
+      "recommendation": "Increase Google spend by 15% - strong ROAS with room for growth"
+    },
+    {
+      "channel": "Facebook",
+      "contribution_share": 0.12,
+      "weekly_contribution_mean": 1850,
+      "roas": { "mean": 1.52, "median": 1.48, "hdi_3": 0.95, "hdi_97": 2.15 },
+      "adstock_params": { "type": "geometric", "alpha": 0.45, "mean_lag_weeks": 0.8 },
+      "saturation_params": { "type": "logistic", "lam": 1.8, "k": 0.6 },
+      "saturation_pct": 0.78,
+      "recommendation": "Facebook is approaching saturation - consider reallocating 10% to Google"
+    },
+    {
+      "channel": "TV",
+      "contribution_share": 0.11,
+      "weekly_contribution_mean": 1700,
+      "roas": { "mean": 0.95, "median": 0.92, "hdi_3": 0.55, "hdi_97": 1.38 },
+      "adstock_params": { "type": "geometric", "alpha": 0.80, "mean_lag_weeks": 3.2 },
+      "saturation_params": { "type": "logistic", "lam": 3.2, "k": 0.9 },
+      "saturation_pct": 0.45,
+      "recommendation": "TV shows long carry-over but marginal ROAS - maintain current spend levels"
+    }
+  ],
+  "decomposition_ts": {
+    "dates": ["2023-01-01", "2023-01-08", "2023-01-15", "2023-01-22", "2023-01-29"],
+    "actual": [15230, 16100, 14800, 15900, 16500],
+    "predicted": [15100, 15950, 14950, 15750, 16300],
+    "predicted_hdi_lower": [14200, 15050, 14100, 14850, 15400],
+    "predicted_hdi_upper": [16000, 16850, 15800, 16650, 17200],
+    "base": [8500, 8600, 8400, 8550, 8700],
+    "channels": {
+      "Google": [3400, 3600, 3200, 3500, 3700],
+      "Facebook": [1850, 1900, 1750, 1800, 1950],
+      "TV": [1350, 1850, 1600, 1900, 1950]
+    }
+  },
+  "summary_text": "The model explains 92% of revenue variance (R\u00b2 = 0.92). Google is the top-performing channel with a ROAS of $2.85, followed by Facebook ($1.52) and TV ($0.95). Base sales account for 55% of total revenue.",
+  "top_recommendation": "Increase Google spend by 15% and reallocate 10% of Facebook budget to Google for optimal ROI.",
+  "response_curves": {
+    "Google": {
+      "spend_range": [0, 1000, 2000, 3000, 4000, 5000],
+      "predicted_contribution": [0, 1200, 2800, 3800, 4400, 4800],
+      "current_spend": 2500,
+      "current_contribution": 3400
+    },
+    "Facebook": {
+      "spend_range": [0, 500, 1000, 1500, 2000, 2500],
+      "predicted_contribution": [0, 800, 1400, 1750, 1950, 2050],
+      "current_spend": 1800,
+      "current_contribution": 1850
+    },
+    "TV": {
+      "spend_range": [0, 2000, 4000, 6000, 8000, 10000],
+      "predicted_contribution": [0, 600, 1200, 1700, 2100, 2400],
+      "current_spend": 5000,
+      "current_contribution": 1700
+    }
+  },
+  "adstock_decay_curves": {
+    "Google": {
+      "weeks": [0, 1, 2, 3, 4, 5],
+      "decay_values": [1.0, 0.65, 0.42, 0.27, 0.18, 0.12]
+    },
+    "Facebook": {
+      "weeks": [0, 1, 2, 3, 4, 5],
+      "decay_values": [1.0, 0.45, 0.20, 0.09, 0.04, 0.02]
+    },
+    "TV": {
+      "weeks": [0, 1, 2, 3, 4, 5],
+      "decay_values": [1.0, 0.80, 0.64, 0.51, 0.41, 0.33]
+    }
+  }
+}

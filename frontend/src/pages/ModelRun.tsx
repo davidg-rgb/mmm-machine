@@ -144,6 +144,7 @@ export default function ModelRun() {
           <Button
             onClick={() => setShowConfig(true)}
             disabled={!validatedDataset}
+            data-testid="new-run-btn"
           >
             <Plus className="h-4 w-4" />
             New Run
@@ -202,6 +203,7 @@ export default function ModelRun() {
               {runs.map((run) => (
                 <div
                   key={run.id}
+                  data-testid={`run-item-${run.id}`}
                   className="flex items-center gap-4 py-3 first:pt-0 last:pb-0"
                 >
                   <StatusIcon status={run.status} />
@@ -230,6 +232,7 @@ export default function ModelRun() {
                     <Link
                       to={`/results/${run.id}`}
                       className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700"
+                      data-testid={`results-link-${run.id}`}
                     >
                       Results
                       <ChevronRight className="h-3 w-3" />
@@ -288,7 +291,7 @@ export default function ModelRun() {
 
       {/* Config modal */}
       <Modal open={showConfig} onOpenChange={setShowConfig}>
-        <ModalContent className="max-w-md">
+        <ModalContent className="max-w-md" data-testid="config-modal">
           <ModalHeader>
             <ModalTitle>Configure Model Run</ModalTitle>
           </ModalHeader>

@@ -184,7 +184,7 @@ export default function Dashboard() {
   const channelCount = latestCompleted?.results?.channel_results.length ?? 0;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
+    <div className="mx-auto max-w-5xl space-y-8" data-testid="dashboard">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">
