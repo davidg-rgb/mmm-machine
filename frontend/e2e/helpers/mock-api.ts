@@ -301,6 +301,41 @@ export async function mockModelRuns(page: Page) {
     });
   });
 
+  // POST /api/models/:id/optimize
+  await page.route('**/api/models/*/optimize', async (route) => {
+    if (route.request().method() === 'POST') {
+      const body = route.request().postDataJSON();
+      const totalBudget = body?.total_budget ?? 9300;
+      const channels = ['Google', 'Facebook', 'TV'];
+      const weights = [0.5, 0.3, 0.2];
+      const allocations: Record<string, number> = {};
+      const predicted: Record<string, number> = {};
+      const currentAlloc: Record<string, number> = { Google: 2500, Facebook: 1800, TV: 5000 };
+      const currentContrib: Record<string, number> = { Google: 3400, Facebook: 1850, TV: 1700 };
+      channels.forEach((ch, i) => {
+        allocations[ch] = Math.round(totalBudget * weights[i]);
+        predicted[ch] = Math.round(currentContrib[ch] * (1 + (allocations[ch] - currentAlloc[ch]) / currentAlloc[ch] * 0.5));
+      });
+      const totalPred = Object.values(predicted).reduce((a, b) => a + b, 0);
+      const totalCurr = Object.values(currentContrib).reduce((a, b) => a + b, 0);
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          allocations,
+          predicted_contributions: predicted,
+          total_predicted_contribution: totalPred,
+          current_allocations: currentAlloc,
+          current_contributions: currentContrib,
+          total_current_contribution: totalCurr,
+          improvement_pct: ((totalPred - totalCurr) / totalCurr) * 100,
+        }),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+
   // GET /api/models/:id (single run) - registered last, matched after more specific routes
   await page.route('**/api/models/run_*', async (route) => {
     if (route.request().method() === 'GET') {

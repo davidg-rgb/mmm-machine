@@ -14,6 +14,14 @@ export function formatCurrency(value: number): string {
   }).format(value);
 }
 
+export function formatCompactCurrency(value: number): string {
+  const abs = Math.abs(value);
+  const sign = value < 0 ? "-" : "";
+  if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(1)}k`;
+  return `${sign}$${Math.round(abs)}`;
+}
+
 export function formatPercent(value: number): string {
   return `${(value * 100).toFixed(1)}%`;
 }
