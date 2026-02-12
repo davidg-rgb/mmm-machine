@@ -93,7 +93,7 @@ async def register(request: Request, body: RegisterRequest, db: AsyncSession = D
             full_name=user.full_name,
             role=user.role,
             workspace_id=workspace_id,
-            created_at=user.created_at.isoformat() if user.created_at else "",
+            created_at=user.created_at.isoformat(),
         ),
     )
 
@@ -120,7 +120,7 @@ async def login(request: Request, body: LoginRequest, db: AsyncSession = Depends
             full_name=user.full_name,
             role=user.role,
             workspace_id=user.workspace_id,
-            created_at=user.created_at.isoformat() if user.created_at else "",
+            created_at=user.created_at.isoformat(),
         ),
     )
 
@@ -159,5 +159,5 @@ async def me(current_user: User = Depends(get_current_user)):
         full_name=current_user.full_name,
         role=current_user.role,
         workspace_id=current_user.workspace_id,
-        created_at=current_user.created_at.isoformat() if current_user.created_at else "",
+        created_at=current_user.created_at.isoformat(),
     )

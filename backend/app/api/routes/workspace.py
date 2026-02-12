@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_current_user, require_role
@@ -79,7 +79,7 @@ async def list_members(
             email=u.email,
             full_name=u.full_name,
             role=u.role,
-            created_at=u.created_at.isoformat() if u.created_at else "",
+            created_at=u.created_at.isoformat(),
         )
         for u in users
     ]
@@ -170,6 +170,9 @@ async def delete_invitation(
     if not invitation:
         raise HTTPException(status_code=404, detail="Invitation not found")
 
+    if invitation.status != "pending":
+        raise HTTPException(status_code=400, detail="Only pending invitations can be revoked")
+
     await db.delete(invitation)
 
 
@@ -248,6 +251,19 @@ async def accept_invite(
     # Mark invitation as accepted
     invitation.status = "accepted"
 
+    # Cancel other pending invites for the same email in this workspace
+    if current_user.email:
+        await db.execute(
+            update(Invitation)
+            .where(
+                Invitation.workspace_id == invitation.workspace_id,
+                Invitation.email == current_user.email,
+                Invitation.status == "pending",
+                Invitation.id != invitation.id,
+            )
+            .values(status="cancelled")
+        )
+
     await db.flush()
 
     return {
@@ -300,7 +316,7 @@ async def update_member_role(
         email=target_user.email,
         full_name=target_user.full_name,
         role=target_user.role,
-        created_at=target_user.created_at.isoformat() if target_user.created_at else "",
+        created_at=target_user.created_at.isoformat(),
     )
 
 

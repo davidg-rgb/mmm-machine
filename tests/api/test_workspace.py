@@ -245,6 +245,20 @@ class TestDeleteInvitation:
         )
         assert resp.status_code == 404
 
+    async def test_delete_accepted_invitation_400(
+        self, client: AsyncClient, auth_headers, db_session, sample_invitation
+    ):
+        """Cannot revoke an already-accepted invitation."""
+        sample_invitation.status = "accepted"
+        await db_session.flush()
+
+        resp = await client.delete(
+            f"/api/workspace/invitations/{sample_invitation.id}",
+            headers=auth_headers,
+        )
+        assert resp.status_code == 400
+        assert "pending" in resp.json()["detail"].lower()
+
 
 class TestValidateInviteToken:
     """GET /api/workspace/invite/{token}"""
@@ -398,6 +412,62 @@ class TestAcceptInvite:
             headers=headers,
         )
         assert resp.status_code == 410
+
+    async def test_accept_invite_cancels_siblings(
+        self, client: AsyncClient, db_session, sample_invitation
+    ):
+        """Accepting an invite should cancel other pending invites for the same email."""
+        from sqlalchemy import select
+        from app.models.workspace import Workspace
+
+        # Create a sibling invite for same email, same workspace
+        sibling = Invitation(
+            workspace_id=sample_invitation.workspace_id,
+            email=sample_invitation.email,
+            role="viewer",
+            invited_by=sample_invitation.invited_by,
+            status="pending",
+        )
+        # Override uniqueness conflict: give sibling a different email so partial index allows it
+        # Actually the sibling has the same email and workspace — the partial unique index
+        # would block this in PostgreSQL. In tests (SQLite), it passes. Instead, test with
+        # a different email to prove cancellation works on the user's email match.
+        sibling.email = "other-pending@example.com"
+        db_session.add(sibling)
+        await db_session.flush()
+
+        # Create acceptor user in a different workspace, whose email matches the sibling
+        other_ws = Workspace(name="Sibling Test WS")
+        db_session.add(other_ws)
+        await db_session.flush()
+
+        acceptor = User(
+            email="other-pending@example.com",
+            hashed_password=hash_password("SibPass123!"),
+            full_name="Sibling Acceptor",
+            role="admin",
+            workspace_id=other_ws.id,
+        )
+        db_session.add(acceptor)
+        # Also update sample_invitation to be a link-only invite (no email restriction)
+        sample_invitation.email = None
+        await db_session.flush()
+
+        token = create_access_token(acceptor.id, {"workspace_id": other_ws.id})
+        headers = {"Authorization": f"Bearer {token}"}
+
+        resp = await client.post(
+            f"/api/workspace/invite/{sample_invitation.token}/accept",
+            headers=headers,
+        )
+        assert resp.status_code == 200
+
+        # Verify sibling invite was cancelled
+        result = await db_session.execute(
+            select(Invitation).where(Invitation.id == sibling.id)
+        )
+        updated_sibling = result.scalar_one()
+        assert updated_sibling.status == "cancelled"
 
 
 # --- Member management ---
