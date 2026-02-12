@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 
-from app.api.dependencies import get_current_user
+from app.api.dependencies import get_current_user, require_role
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.models.dataset import Dataset
@@ -151,7 +151,7 @@ def _dataset_to_response(d: Dataset) -> DatasetResponse:
 async def upload_dataset(
     request: Request,
     file: UploadFile = File(...),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_role("admin", "member")),
     db: AsyncSession = Depends(get_db),
 ):
     # Sanitize and validate filename
@@ -352,7 +352,7 @@ async def get_dataset(
 async def update_mapping(
     dataset_id: str,
     body: UpdateMappingRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_role("admin", "member")),
     db: AsyncSession = Depends(get_db),
 ):
     dataset = await _get_dataset(dataset_id, current_user.workspace_id, db)
@@ -366,7 +366,7 @@ async def update_mapping(
 async def validate_dataset(
     request: Request,
     dataset_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_role("admin", "member")),
     db: AsyncSession = Depends(get_db),
 ):
     dataset = await _get_dataset(dataset_id, current_user.workspace_id, db)
@@ -418,7 +418,7 @@ async def validate_dataset(
 @router.delete("/{dataset_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_dataset(
     dataset_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_role("admin", "member")),
     db: AsyncSession = Depends(get_db),
 ):
     dataset = await _get_dataset(dataset_id, current_user.workspace_id, db)

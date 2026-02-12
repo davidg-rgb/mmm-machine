@@ -15,6 +15,7 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
+from app.models.invitation import Invitation
 from app.models.user import User
 from app.models.workspace import Workspace
 from app.schemas.auth import (
@@ -38,22 +39,48 @@ async def register(request: Request, body: RegisterRequest, db: AsyncSession = D
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
 
-    workspace = Workspace(name=body.workspace_name or f"{body.full_name}'s Workspace")
-    db.add(workspace)
-    await db.flush()
+    invitation = None
+    if body.invite_token:
+        # Validate invite token
+        from datetime import datetime, timezone
+
+        result = await db.execute(
+            select(Invitation).where(
+                Invitation.token == body.invite_token,
+                Invitation.status == "pending",
+            )
+        )
+        invitation = result.scalar_one_or_none()
+        if not invitation:
+            raise HTTPException(status_code=400, detail="Invalid or expired invitation token")
+        if invitation.expires_at < datetime.now(timezone.utc):
+            raise HTTPException(status_code=410, detail="Invitation has expired")
+
+    if invitation:
+        # Join existing workspace via invitation
+        workspace_id = invitation.workspace_id
+        role = invitation.role
+        invitation.status = "accepted"
+    else:
+        # Create new workspace
+        workspace = Workspace(name=body.workspace_name or f"{body.full_name}'s Workspace")
+        db.add(workspace)
+        await db.flush()
+        workspace_id = workspace.id
+        role = "admin"
 
     user = User(
         email=body.email,
         hashed_password=hash_password(body.password),
         full_name=body.full_name,
-        role="admin",
-        workspace_id=workspace.id,
+        role=role,
+        workspace_id=workspace_id,
     )
     db.add(user)
     await db.flush()
     await db.commit()
 
-    access_token = create_access_token(user.id, {"workspace_id": workspace.id})
+    access_token = create_access_token(user.id, {"workspace_id": workspace_id})
     refresh_token = create_refresh_token(user.id)
 
     return AuthResponse(
@@ -65,7 +92,7 @@ async def register(request: Request, body: RegisterRequest, db: AsyncSession = D
             email=user.email,
             full_name=user.full_name,
             role=user.role,
-            workspace_id=workspace.id,
+            workspace_id=workspace_id,
             created_at=user.created_at.isoformat() if user.created_at else "",
         ),
     )

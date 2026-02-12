@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 
-from app.api.dependencies import get_current_user
+from app.api.dependencies import get_current_user, require_role
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.models.dataset import Dataset
@@ -27,7 +27,7 @@ limiter = Limiter(key_func=get_remote_address, enabled=settings.app_env != "test
 async def create_model_run(
     request: Request,
     body: ModelRunConfig,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_role("admin", "member")),
     db: AsyncSession = Depends(get_db),
 ):
     # Verify dataset exists and belongs to workspace
@@ -130,7 +130,7 @@ async def get_summary(
 @router.delete("/{run_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_model_run(
     run_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_role("admin")),
     db: AsyncSession = Depends(get_db),
 ):
     model_run = await _get_run(run_id, current_user.workspace_id, db)

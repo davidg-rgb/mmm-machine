@@ -10,6 +10,9 @@ import type {
   ModelResults,
   ModelRunConfig,
   ProgressEvent,
+  Invitation,
+  InviteResponse,
+  InviteInfo,
 } from "../types";
 
 const api = axios.create({
@@ -123,12 +126,14 @@ export async function register(
   password: string,
   full_name: string,
   workspace_name?: string,
+  invite_token?: string,
 ): Promise<TokenResponse & { user: User }> {
   const { data } = await api.post("/auth/register", {
     email,
     password,
     full_name,
     workspace_name,
+    invite_token,
   });
   return data;
 }
@@ -252,6 +257,39 @@ export function subscribeToProgress(
     }
   };
   return es;
+}
+
+// ---- Workspace Management ----
+
+export async function createInvite(role: string, email?: string): Promise<InviteResponse> {
+  const { data } = await api.post("/workspace/invite", { role, email });
+  return data;
+}
+
+export async function listInvitations(): Promise<Invitation[]> {
+  const { data } = await api.get("/workspace/invitations");
+  return data;
+}
+
+export async function revokeInvitation(id: string): Promise<void> {
+  await api.delete(`/workspace/invitations/${id}`);
+}
+
+export async function getInviteInfo(token: string): Promise<InviteInfo> {
+  const { data } = await api.get(`/workspace/invite/${token}`);
+  return data;
+}
+
+export async function acceptInvite(token: string): Promise<void> {
+  await api.post(`/workspace/invite/${token}/accept`);
+}
+
+export async function updateMemberRole(userId: string, role: string): Promise<void> {
+  await api.put(`/workspace/members/${userId}/role`, { role });
+}
+
+export async function removeMember(userId: string): Promise<void> {
+  await api.delete(`/workspace/members/${userId}`);
 }
 
 export default api;

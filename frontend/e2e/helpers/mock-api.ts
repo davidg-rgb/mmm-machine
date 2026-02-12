@@ -356,4 +356,162 @@ export async function mockModelRuns(page: Page) {
   });
 }
 
-export { MOCK_USER, MOCK_TOKENS, MOCK_DATASET, MOCK_UPLOAD_RESPONSE, MOCK_VALIDATION_REPORT, MOCK_MODEL_RUN };
+const MOCK_WORKSPACE = {
+  id: 'ws_test_001',
+  name: 'Test Workspace',
+  created_at: '2025-01-01T00:00:00Z',
+};
+
+const MOCK_MEMBERS = [
+  {
+    id: 'usr_test_001',
+    email: 'test@example.com',
+    full_name: 'Test User',
+    role: 'admin',
+    created_at: '2025-01-01T00:00:00Z',
+  },
+  {
+    id: 'usr_test_002',
+    email: 'member@example.com',
+    full_name: 'Team Member',
+    role: 'member',
+    created_at: '2025-01-02T00:00:00Z',
+  },
+];
+
+const MOCK_INVITATION = {
+  id: 'inv_test_001',
+  email: null,
+  role: 'member',
+  status: 'pending' as const,
+  invited_by: 'usr_test_001',
+  expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+  created_at: '2025-01-15T00:00:00Z',
+};
+
+const MOCK_INVITE_RESPONSE = {
+  id: 'inv_test_001',
+  token: 'tok_test_001',
+  invite_url: '/invite/tok_test_001',
+  role: 'member',
+  expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+};
+
+const MOCK_INVITE_INFO = {
+  id: 'inv_test_001',
+  workspace_name: 'Test Workspace',
+  role: 'member',
+  email: null,
+  expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+};
+
+export async function mockWorkspace(page: Page) {
+  // GET /api/workspace
+  await page.route('**/api/workspace', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(MOCK_WORKSPACE),
+      });
+    } else if (route.request().method() === 'PUT') {
+      const body = route.request().postDataJSON();
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ ...MOCK_WORKSPACE, name: body?.name ?? MOCK_WORKSPACE.name }),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+
+  // GET /api/workspace/members
+  await page.route('**/api/workspace/members*', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(MOCK_MEMBERS),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+
+  // POST /api/workspace/invite
+  await page.route('**/api/workspace/invite', async (route) => {
+    if (route.request().method() === 'POST') {
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify(MOCK_INVITE_RESPONSE),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+
+  // GET /api/workspace/invitations
+  await page.route('**/api/workspace/invitations*', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([MOCK_INVITATION]),
+      });
+    } else if (route.request().method() === 'DELETE') {
+      await route.fulfill({ status: 204 });
+    } else {
+      await route.continue();
+    }
+  });
+
+  // GET /api/workspace/invite/:token (public)
+  await page.route('**/api/workspace/invite/tok_*', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(MOCK_INVITE_INFO),
+      });
+    } else if (route.request().method() === 'POST') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ detail: 'Invitation accepted', workspace_id: 'ws_test_001', role: 'member' }),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+
+  // PUT /api/workspace/members/:id/role
+  await page.route('**/api/workspace/members/*/role', async (route) => {
+    if (route.request().method() === 'PUT') {
+      const body = route.request().postDataJSON();
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ ...MOCK_MEMBERS[1], role: body?.role ?? 'member' }),
+      });
+    } else {
+      await route.continue();
+    }
+  });
+
+  // DELETE /api/workspace/members/:id
+  await page.route('**/api/workspace/members/usr_*', async (route) => {
+    if (route.request().method() === 'DELETE') {
+      await route.fulfill({ status: 204 });
+    } else {
+      await route.continue();
+    }
+  });
+}
+
+export {
+  MOCK_USER, MOCK_TOKENS, MOCK_DATASET, MOCK_UPLOAD_RESPONSE,
+  MOCK_VALIDATION_REPORT, MOCK_MODEL_RUN, MOCK_WORKSPACE,
+  MOCK_MEMBERS, MOCK_INVITATION, MOCK_INVITE_RESPONSE, MOCK_INVITE_INFO,
+};

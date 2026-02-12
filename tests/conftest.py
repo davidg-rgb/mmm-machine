@@ -33,8 +33,7 @@ get_settings.cache_clear()
 from app.core.database import Base, get_db  # noqa: E402
 from app.core.security import create_access_token, hash_password  # noqa: E402
 from app.main import app  # noqa: E402
-from app.models.user import User  # noqa: E402
-from app.models.workspace import Workspace  # noqa: E402
+from app.models import Dataset, Invitation, ModelRun, User, Workspace  # noqa: E402, F401
 
 # Map PostgreSQL JSONB -> generic JSON for SQLite compatibility in tests.
 # This must happen before create_all() so the DDL renders correctly.

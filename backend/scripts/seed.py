@@ -105,6 +105,20 @@ def seed():
         db.flush()
         print(f"Created user: {user.email} (password: demo123)")
 
+        # Create admin user (David)
+        david_id = str(uuid.uuid4())
+        david = User(
+            id=david_id,
+            email="david.geborek@gmail.com",
+            hashed_password=hash_password("Skillsmp123"),
+            full_name="David Geborek",
+            role="admin",
+            workspace_id=workspace_id,
+        )
+        db.add(david)
+        db.flush()
+        print(f"Created user: {david.email} (admin)")
+
         # Generate and upload CSV
         csv_content = generate_sample_csv()
         dataset_id = str(uuid.uuid4())

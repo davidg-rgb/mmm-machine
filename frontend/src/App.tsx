@@ -15,6 +15,7 @@ const ModelRun = lazy(() => import("./pages/ModelRun"));
 const Results = lazy(() => import("./pages/Results"));
 const Compare = lazy(() => import("./pages/Compare"));
 const Settings = lazy(() => import("./pages/Settings"));
+const AcceptInvite = lazy(() => import("./pages/AcceptInvite"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -71,6 +72,7 @@ export default function App() {
               </GuestRoute>
             }
           />
+          <Route path="/invite/:token" element={<AcceptInvite />} />
           <Route
             element={
               <ProtectedRoute>

@@ -169,3 +169,28 @@ export interface ProgressEvent {
   stage: string;
   eta_seconds?: number;
 }
+
+export interface Invitation {
+  id: string;
+  email: string | null;
+  role: string;
+  status: "pending" | "accepted" | "expired";
+  invited_by: string;
+  expires_at: string;
+  created_at: string;
+}
+
+export interface InviteResponse {
+  id: string;
+  token: string;
+  invite_url: string;
+  role: string;
+  expires_at: string;
+}
+
+export interface InviteInfo {
+  workspace_name: string;
+  role: string;
+  email: string | null;
+  expires_at: string;
+}

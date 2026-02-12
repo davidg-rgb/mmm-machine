@@ -11,6 +11,7 @@ class RegisterRequest(BaseModel):
     password: str
     full_name: str
     workspace_name: str | None = None
+    invite_token: str | None = None
 
     @field_validator('password')
     @classmethod
