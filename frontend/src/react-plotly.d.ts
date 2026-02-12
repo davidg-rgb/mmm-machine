@@ -1,6 +1,11 @@
-declare module 'react-plotly.js' {
-  import { Component } from 'react';
-  import Plotly from 'plotly.js';
+declare module "plotly.js-basic-dist-min" {
+  import Plotly from "plotly.js";
+  export default Plotly;
+}
+
+declare module "react-plotly.js/factory" {
+  import { Component, ComponentClass } from "react";
+  import Plotly from "plotly.js";
 
   interface PlotParams {
     data: Plotly.Data[];
@@ -22,5 +27,7 @@ declare module 'react-plotly.js' {
     onUnhover?: (event: Plotly.PlotMouseEvent) => void;
   }
 
-  export default class Plot extends Component<PlotParams> {}
+  export default function createPlotlyComponent(
+    plotly: typeof Plotly,
+  ): ComponentClass<PlotParams>;
 }

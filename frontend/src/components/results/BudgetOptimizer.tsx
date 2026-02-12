@@ -1,5 +1,5 @@
 import { useState } from "react";
-import Plot from "react-plotly.js";
+import Plot from "@/lib/plotly";
 import toast from "react-hot-toast";
 import {
   Card,

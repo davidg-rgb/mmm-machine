@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import BudgetOptimizer from "../components/results/BudgetOptimizer";
 
-// Mock react-plotly.js
-vi.mock("react-plotly.js", () => ({
+// Mock plotly wrapper
+vi.mock("../lib/plotly", () => ({
   default: () => <div data-testid="plotly-chart" />,
 }));
 

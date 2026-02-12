@@ -16,7 +16,7 @@ import { useModelRun, useModelResults } from "@/hooks/api-hooks";
 import toast from "react-hot-toast";
 import { toCSV, downloadFile, copyToClipboard } from "@/lib/export";
 
-// Lazy-load views that use heavy chart libraries (Plotly = 4.75MB)
+// Lazy-load views that use heavy chart libraries (Plotly ~800KB via basic-dist-min)
 const ManagerView = lazy(() => import("@/components/results/ManagerView"));
 const AnalystView = lazy(() => import("@/components/results/AnalystView"));
 

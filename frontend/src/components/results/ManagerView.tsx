@@ -13,7 +13,7 @@ import {
   Area,
   AreaChart,
 } from "recharts";
-import Plot from "react-plotly.js";
+import Plot from "@/lib/plotly";
 import {
   Card,
   CardContent,
