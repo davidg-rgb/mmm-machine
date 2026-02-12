@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAuthStore } from "@/store/auth";
-import { getInviteInfo, acceptInvite, register } from "@/services/api";
+import { getInviteInfo, acceptInvite, getMe, register } from "@/services/api";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useQuery } from "@tanstack/react-query";
 import { BarChart3, Eye, EyeOff, Check, X } from "lucide-react";
@@ -80,10 +80,22 @@ export default function AcceptInvite() {
     setJoining(true);
     try {
       await acceptInvite(token);
+      // Refresh user data so auth store has the new workspace/role
+      const updatedUser = await getMe();
+      const currentAccessToken = useAuthStore.getState().accessToken;
+      const currentRefreshToken = useAuthStore.getState().refreshToken;
+      if (currentAccessToken && currentRefreshToken) {
+        setAuth(updatedUser, currentAccessToken, currentRefreshToken);
+      }
       toast.success("Joined workspace successfully!");
       navigate("/");
-    } catch {
-      toast.error("Failed to join workspace. The invite may have expired.");
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail;
+      if (detail?.includes("already a member")) {
+        toast.error("You are already a member of this workspace.");
+      } else {
+        toast.error("Failed to join workspace. The invite may have expired.");
+      }
     } finally {
       setJoining(false);
     }
@@ -357,7 +369,7 @@ export default function AcceptInvite() {
         <p className="mt-4 text-center text-sm text-gray-500">
           Already have an account?{" "}
           <Link
-            to="/login"
+            to={`/login?redirect=${encodeURIComponent(`/invite/${token}`)}`}
             className="font-medium text-brand-600 hover:text-brand-700"
           >
             Sign in

@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 
 class WorkspaceResponse(BaseModel):
@@ -12,7 +12,7 @@ class WorkspaceResponse(BaseModel):
 
 
 class WorkspaceUpdate(BaseModel):
-    name: str
+    name: str = Field(..., min_length=1, max_length=255)
 
 
 class InviteRequest(BaseModel):

@@ -100,6 +100,7 @@ async def invite_member(
                 Invitation.workspace_id == current_user.workspace_id,
                 Invitation.email == body.email,
                 Invitation.status == "pending",
+                Invitation.expires_at > datetime.now(timezone.utc),
             )
         )
         if existing.scalar_one_or_none():
@@ -135,6 +136,7 @@ async def list_invitations(
         select(Invitation).where(
             Invitation.workspace_id == current_user.workspace_id,
             Invitation.status == "pending",
+            Invitation.expires_at > datetime.now(timezone.utc),
         )
     )
     invitations = result.scalars().all()
@@ -225,6 +227,20 @@ async def accept_invite(
     if invitation.expires_at < datetime.now(timezone.utc):
         raise HTTPException(status_code=410, detail="Invitation has expired")
 
+    # Prevent accepting if already in this workspace
+    if current_user.workspace_id == invitation.workspace_id:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="You are already a member of this workspace",
+        )
+
+    # Email-targeted invites can only be accepted by the matching user
+    if invitation.email and invitation.email != current_user.email:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This invitation was sent to a different email address",
+        )
+
     # Update user's workspace and role
     current_user.workspace_id = invitation.workspace_id
     current_user.role = invitation.role
@@ -307,4 +323,21 @@ async def remove_member(
     if not target_user:
         raise HTTPException(status_code=404, detail="User not found in workspace")
 
-    await db.delete(target_user)
+    # Prevent removing the last admin
+    if target_user.role == "admin":
+        admin_count_result = await db.execute(
+            select(func.count()).select_from(User).where(
+                User.workspace_id == current_user.workspace_id,
+                User.role == "admin",
+            )
+        )
+        admin_count = admin_count_result.scalar()
+        if admin_count <= 1:
+            raise HTTPException(status_code=400, detail="Cannot remove the last admin")
+
+    # Move user to a personal workspace instead of deleting their account
+    personal_ws = Workspace(name=f"{target_user.full_name}'s Workspace")
+    db.add(personal_ws)
+    await db.flush()
+    target_user.workspace_id = personal_ws.id
+    target_user.role = "admin"

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuthStore } from "@/store/auth";
 import { login } from "@/services/api";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -16,6 +16,7 @@ export default function Login() {
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
   const setAuth = useAuthStore((s) => s.setAuth);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   function validate(): boolean {
     const errors: { email?: string; password?: string } = {};
@@ -40,7 +41,8 @@ export default function Login() {
     try {
       const res = await login(email, password);
       setAuth(res.user, res.access_token, res.refresh_token);
-      navigate("/");
+      const redirectTo = searchParams.get("redirect") || "/";
+      navigate(redirectTo);
     } catch {
       setError("Invalid email or password. Please try again.");
     } finally {

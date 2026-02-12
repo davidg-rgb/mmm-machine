@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuthStore } from "@/store/auth";
 import { User, Building2, Users, Save, Copy, UserPlus, Trash2, Link2 } from "lucide-react";
@@ -46,13 +46,16 @@ export default function Settings() {
   const user = useAuthStore((s) => s.user);
   const queryClient = useQueryClient();
   const [workspaceName, setWorkspaceName] = useState("");
-  const [initialized, setInitialized] = useState(false);
 
   // Invite form state
   const [showInviteForm, setShowInviteForm] = useState(false);
   const [inviteRole, setInviteRole] = useState("member");
   const [inviteEmail, setInviteEmail] = useState("");
   const [generatedLink, setGeneratedLink] = useState("");
+
+  // Per-item pending state
+  const [revokingId, setRevokingId] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   const isAdmin = user?.role === "admin";
 
@@ -78,11 +81,12 @@ export default function Settings() {
     enabled: isAdmin,
   });
 
-  // Initialize workspace name from fetched data
-  if (workspace && !initialized) {
-    setWorkspaceName(workspace.name);
-    setInitialized(true);
-  }
+  // Sync workspace name from fetched data
+  useEffect(() => {
+    if (workspace) {
+      setWorkspaceName(workspace.name);
+    }
+  }, [workspace]);
 
   const updateWorkspace = useMutation({
     mutationFn: async (name: string) => {
@@ -111,11 +115,13 @@ export default function Settings() {
 
   const revokeMutation = useMutation({
     mutationFn: revokeInvitation,
+    onMutate: (id) => setRevokingId(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workspace-invitations"] });
       toast.success("Invitation revoked");
     },
     onError: () => toast.error("Failed to revoke invitation"),
+    onSettled: () => setRevokingId(null),
   });
 
   const updateRoleMutation = useMutation({
@@ -130,11 +136,13 @@ export default function Settings() {
 
   const removeMemberMutation = useMutation({
     mutationFn: removeMember,
+    onMutate: (id) => setRemovingId(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workspace-members"] });
       toast.success("Member removed");
     },
     onError: () => toast.error("Failed to remove member"),
+    onSettled: () => setRemovingId(null),
   });
 
   function handleSaveWorkspace(e: React.FormEvent) {
@@ -162,6 +170,17 @@ export default function Settings() {
     if (window.confirm(`Remove ${memberName} from this workspace?`)) {
       removeMemberMutation.mutate(memberId);
     }
+  }
+
+  function getInitials(name: string): string {
+    if (!name) return "?";
+    return name
+      .split(" ")
+      .filter(Boolean)
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) || "?";
   }
 
   const pendingInvitations = invitations?.filter((inv) => inv.status === "pending") ?? [];
@@ -225,7 +244,7 @@ export default function Settings() {
               <Skeleton className="h-4 w-32" />
               <Skeleton className="h-10 w-full" />
             </div>
-          ) : (
+          ) : isAdmin ? (
             <form onSubmit={handleSaveWorkspace} className="space-y-4">
               <div>
                 <label
@@ -263,6 +282,23 @@ export default function Settings() {
                 </p>
               )}
             </form>
+          ) : (
+            <div className="space-y-4">
+              <div>
+                <p className="block text-sm font-medium text-gray-700">
+                  Workspace Name
+                </p>
+                <p className="mt-1 text-sm text-gray-900">
+                  {workspace?.name ?? "\u2014"}
+                </p>
+              </div>
+              {workspace?.created_at && (
+                <p className="text-xs text-gray-400">
+                  Created{" "}
+                  {new Date(workspace.created_at).toLocaleDateString()}
+                </p>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>
@@ -317,6 +353,7 @@ export default function Settings() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="admin">Admin</SelectItem>
                         <SelectItem value="member">Member</SelectItem>
                         <SelectItem value="viewer">Viewer</SelectItem>
                       </SelectContent>
@@ -344,6 +381,7 @@ export default function Settings() {
                         type="text"
                         readOnly
                         value={generatedLink}
+                        aria-label="Invite link"
                         className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700"
                       />
                       <Button
@@ -382,7 +420,8 @@ export default function Settings() {
                             variant="ghost"
                             size="sm"
                             onClick={() => revokeMutation.mutate(inv.id)}
-                            disabled={revokeMutation.isPending}
+                            disabled={revokingId === inv.id}
+                            aria-label={`Revoke invitation for ${inv.email ?? "link invite"}`}
                           >
                             <Trash2 className="h-4 w-4 text-red-500" />
                           </Button>
@@ -430,12 +469,7 @@ export default function Settings() {
                     className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
                   >
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-sm font-medium text-brand-700">
-                      {member.full_name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")
-                        .toUpperCase()
-                        .slice(0, 2)}
+                      {getInitials(member.full_name)}
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-gray-900">
@@ -461,7 +495,7 @@ export default function Settings() {
                             })
                           }
                         >
-                          <SelectTrigger className="w-28">
+                          <SelectTrigger className="w-28" aria-label={`Role for ${member.full_name}`}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -476,7 +510,8 @@ export default function Settings() {
                           onClick={() =>
                             handleRemoveMember(member.id, member.full_name)
                           }
-                          disabled={removeMemberMutation.isPending}
+                          disabled={removingId === member.id}
+                          aria-label={`Remove ${member.full_name}`}
                         >
                           <Trash2 className="h-4 w-4 text-red-500" />
                         </Button>
